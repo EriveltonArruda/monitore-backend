@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ======================================
+// ========= MODELOS RESTAURADOS ========
+// ======================================
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -14,6 +18,7 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   movements StockMovement[]
 }
 
@@ -23,7 +28,7 @@ model Product {
   sku                String?  @unique
   description        String?
   unit               String?
-  status             ProductStatus @default(ATIVO)
+  status             String   @default("ATIVO") // Corrigido para String
   stockQuantity      Int
   minStockQuantity   Int      @default(0)
   salePrice          Float
@@ -33,10 +38,13 @@ model Product {
   videoUrl           String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
   category   Category? @relation(fields: [categoryId], references: [id])
   categoryId Int?
+
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
   supplierId Int?
+
   images    ProductImage[]
   movements StockMovement[]
 }
@@ -44,12 +52,14 @@ model Product {
 model Category {
   id   Int    @id @default(autoincrement())
   name String @unique
+
   products Product[]
 }
 
 model Supplier {
   id   Int    @id @default(autoincrement())
   name String
+
   products Product[]
 }
 
@@ -61,25 +71,20 @@ model ProductImage {
 }
 
 model StockMovement {
-  id          Int          @id @default(autoincrement())
-  type        MovementType
-  quantity    Int
-  details     String?
-  document    String?
-  createdAt   DateTime     @default(now())
-  product     Product @relation(fields: [productId], references: [id])
-  productId   Int
-  user        User    @relation(fields: [userId], references: [id])
-  userId      Int
-}
+  id        Int    @id @default(autoincrement())
+  type      String
+  quantity  Int
+  details   String? // Usaremos para o "Motivo"
 
-enum ProductStatus {
-  ATIVO
-  INATIVO
-}
-
-enum MovementType {
-  ENTRADA
-  SAIDA
-  AJUSTE
+  // --- NOVOS CAMPOS ADICIONADOS ---
+  relatedParty String? // Guardará o nome do Cliente ou Fornecedor
+  unitPriceAtMovement Float? // Preço unitário no momento da transação
+  notes       String? // Para o campo "Observações"
+  
+  document  String?
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
 }
