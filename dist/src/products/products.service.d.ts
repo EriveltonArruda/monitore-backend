@@ -14,21 +14,21 @@ export declare class ProductsService {
     create(createProductDto: CreateProductDto): Prisma.Prisma__ProductClient<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         sku: string | null;
         description: string | null;
         unit: string | null;
-        status: string;
         stockQuantity: number;
-        minStockQuantity: number;
         salePrice: number;
         costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        categoryId: number | null;
-        supplierId: number | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, Prisma.PrismaClientOptions>;
     findAll(params?: FindAllProductsParams): Prisma.PrismaPromise<({
         category: {
@@ -42,21 +42,21 @@ export declare class ProductsService {
     } & {
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         sku: string | null;
         description: string | null;
         unit: string | null;
-        status: string;
         stockQuantity: number;
-        minStockQuantity: number;
         salePrice: number;
         costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        categoryId: number | null;
-        supplierId: number | null;
     })[]>;
     findOne(id: number): Promise<{
         category: {
@@ -70,59 +70,59 @@ export declare class ProductsService {
     } & {
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         sku: string | null;
         description: string | null;
         unit: string | null;
-        status: string;
         stockQuantity: number;
-        minStockQuantity: number;
         salePrice: number;
         costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        categoryId: number | null;
-        supplierId: number | null;
     }>;
     update(id: number, updateProductDto: UpdateProductDto): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         sku: string | null;
         description: string | null;
         unit: string | null;
-        status: string;
         stockQuantity: number;
-        minStockQuantity: number;
         salePrice: number;
         costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        categoryId: number | null;
-        supplierId: number | null;
     }>;
     remove(id: number): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         sku: string | null;
         description: string | null;
         unit: string | null;
-        status: string;
         stockQuantity: number;
-        minStockQuantity: number;
         salePrice: number;
         costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        categoryId: number | null;
-        supplierId: number | null;
     }>;
 }
 export {};

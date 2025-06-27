@@ -15,12 +15,13 @@ const suppliers_module_1 = require("./suppliers/suppliers.module");
 const products_module_1 = require("./products/products.module");
 const stock_movements_module_1 = require("./stock-movements/stock-movements.module");
 const dashboard_module_1 = require("./dashboard/dashboard.module");
+const reports_module_1 = require("./reports/reports.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [categories_module_1.CategoriesModule, suppliers_module_1.SuppliersModule, products_module_1.ProductsModule, stock_movements_module_1.StockMovementsModule, dashboard_module_1.DashboardModule],
+        imports: [categories_module_1.CategoriesModule, suppliers_module_1.SuppliersModule, products_module_1.ProductsModule, stock_movements_module_1.StockMovementsModule, dashboard_module_1.DashboardModule, reports_module_1.ReportsModule],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
     })
