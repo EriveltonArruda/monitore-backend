@@ -37,7 +37,10 @@ export declare class ProductsService {
         } | null;
         supplier: {
             id: number;
+            email: string | null;
             name: string;
+            cnpj: string | null;
+            phone: string | null;
         } | null;
     } & {
         id: number;
@@ -65,7 +68,10 @@ export declare class ProductsService {
         } | null;
         supplier: {
             id: number;
+            email: string | null;
             name: string;
+            cnpj: string | null;
+            phone: string | null;
         } | null;
     } & {
         id: number;

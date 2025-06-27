@@ -13,6 +13,9 @@ exports.CreateSupplierDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateSupplierDto {
     name;
+    cnpj;
+    phone;
+    email;
 }
 exports.CreateSupplierDto = CreateSupplierDto;
 __decorate([
@@ -20,4 +23,19 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateSupplierDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSupplierDto.prototype, "cnpj", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSupplierDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsEmail)({}, { message: 'Por favor, insira um e-mail válido.' }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSupplierDto.prototype, "email", void 0);
 //# sourceMappingURL=create-supplier.dto.js.map

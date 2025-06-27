@@ -59,6 +59,9 @@ model Category {
 model Supplier {
   id   Int    @id @default(autoincrement())
   name String
+  cnpj  String? @unique // CNPJ será opcional e único
+  phone String?
+  email String?
 
   products Product[]
 }
