@@ -7,9 +7,10 @@ import { ProductsModule } from './products/products.module';
 import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportsModule } from './reports/reports.module';
+import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
-  imports: [CategoriesModule, SuppliersModule, ProductsModule, StockMovementsModule, DashboardModule, ReportsModule],
+  imports: [CategoriesModule, SuppliersModule, ProductsModule, StockMovementsModule, DashboardModule, ReportsModule, ContactsModule],
   controllers: [AppController],
   providers: [AppService],
 })
