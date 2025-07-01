@@ -7,20 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ======================================
-// ========= MODELOS RESTAURADOS ========
-// ======================================
-
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  movements StockMovement[]
-}
+// ========= MODELOS PRINCIPAIS =========
 
 model Product {
   id                 Int      @id @default(autoincrement())
@@ -28,7 +15,7 @@ model Product {
   sku                String?  @unique
   description        String?
   unit               String?
-  status             String   @default("ATIVO") // Corrigido para String
+  status             String   @default("ATIVO")
   stockQuantity      Int
   minStockQuantity   Int      @default(0)
   salePrice          Float
@@ -38,56 +25,93 @@ model Product {
   videoUrl           String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-
+  
   category   Category? @relation(fields: [categoryId], references: [id])
   categoryId Int?
-
+  
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
   supplierId Int?
-
+  
   images    ProductImage[]
+  movements StockMovement[]
+}
+
+model StockMovement {
+  id                  Int      @id @default(autoincrement())
+  type                String
+  quantity            Int
+  details             String?
+  relatedParty        String?
+  unitPriceAtMovement Float?
+  notes               String?
+  document            String?
+  createdAt           DateTime @default(now())
+  
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+}
+
+model AccountPayable {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String
+  value       Float
+  dueDate     DateTime
+  status      String   @default("A_PAGAR")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========= MODELOS DE SUPORTE =========
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
   movements StockMovement[]
 }
 
 model Category {
   id   Int    @id @default(autoincrement())
   name String @unique
-
+  
   products Product[]
 }
 
 model Supplier {
-  id   Int    @id @default(autoincrement())
-  name String
-  cnpj  String? @unique // CNPJ será opcional e único
+  id    Int     @id @default(autoincrement())
+  name  String
+  cnpj  String? @unique
   phone String?
-  email String?
-
+  email String? @unique
+  
   products Product[]
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  company   String?
+  email     String?  @unique
+  phone     String?
+  type      String   @default("Cliente")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductImage {
   id        Int     @id @default(autoincrement())
   url       String
+  
   product   Product @relation(fields: [productId], references: [id])
   productId Int
-}
-
-model StockMovement {
-  id        Int    @id @default(autoincrement())
-  type      String
-  quantity  Int
-  details   String? // Usaremos para o "Motivo"
-
-  // --- NOVOS CAMPOS ADICIONADOS ---
-  relatedParty String? // Guardará o nome do Cliente ou Fornecedor
-  unitPriceAtMovement Float? // Preço unitário no momento da transação
-  notes       String? // Para o campo "Observações"
-  
-  document  String?
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id])
-  productId Int
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
 }

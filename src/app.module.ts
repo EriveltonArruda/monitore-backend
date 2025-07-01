@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './prisma/prisma.module';
 import { CategoriesModule } from './categories/categories.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { ProductsModule } from './products/products.module';
@@ -8,9 +9,20 @@ import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportsModule } from './reports/reports.module';
 import { ContactsModule } from './contacts/contacts.module';
+import { AccountsPayableModule } from './accounts-payable/accounts-payable.module'; 
 
 @Module({
-  imports: [CategoriesModule, SuppliersModule, ProductsModule, StockMovementsModule, DashboardModule, ReportsModule, ContactsModule],
+  imports: [
+    PrismaModule,
+    CategoriesModule,
+    SuppliersModule,
+    ProductsModule,
+    StockMovementsModule,
+    DashboardModule,
+    ReportsModule,
+    ContactsModule,
+    AccountsPayableModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
