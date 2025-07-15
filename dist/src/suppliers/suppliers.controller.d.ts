@@ -6,37 +6,47 @@ export declare class SuppliersController {
     constructor(suppliersService: SuppliersService);
     create(createSupplierDto: CreateSupplierDto): import(".prisma/client").Prisma.Prisma__SupplierClient<{
         id: number;
-        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
+        email: string | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
+    findAll(page?: string, limit?: string): Promise<{
+        data: {
+            id: number;
+            name: string;
+            cnpj: string | null;
+            phone: string | null;
+            email: string | null;
+        }[];
+        total: number;
+    }>;
+    findAllNoPagination(): Promise<{
         id: number;
-        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
+        email: string | null;
     }[]>;
     findOne(id: number): Promise<{
         id: number;
-        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
+        email: string | null;
     }>;
     update(id: number, updateSupplierDto: UpdateSupplierDto): Promise<{
         id: number;
-        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
+        email: string | null;
     }>;
     remove(id: number): Promise<{
         id: number;
-        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
+        email: string | null;
     }>;
 }

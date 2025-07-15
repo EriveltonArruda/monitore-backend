@@ -8,13 +8,33 @@ export class SuppliersService {
   constructor(private prisma: PrismaService) {}
 
   create(createSupplierDto: CreateSupplierDto) {
-    return this.prisma.supplier.create({
-      data: createSupplierDto,
-    });
+    return this.prisma.supplier.create({ data: createSupplierDto });
   }
 
-  findAll() {
-    return this.prisma.supplier.findMany();
+  // O método agora é 'async' e retorna um objeto paginado
+  async findAll(params: { page: number, limit: number }) {
+    const { page, limit } = params;
+    const skip = (page - 1) * limit;
+
+    const [suppliers, total] = await this.prisma.$transaction([
+      this.prisma.supplier.findMany({
+        orderBy: { name: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.supplier.count(),
+    ]);
+
+    return {
+      data: suppliers,
+      total,
+    };
+  }
+
+  async findAllNoPagination() {
+    return this.prisma.supplier.findMany({
+      orderBy: { name: 'asc' },
+    });
   }
 
   async findOne(id: number) {
@@ -26,7 +46,7 @@ export class SuppliersService {
   }
 
   async update(id: number, updateSupplierDto: UpdateSupplierDto) {
-    await this.findOne(id); // Reutiliza a checagem se o fornecedor existe
+    await this.findOne(id);
     return this.prisma.supplier.update({
       where: { id },
       data: updateSupplierDto,
@@ -34,9 +54,7 @@ export class SuppliersService {
   }
 
   async remove(id: number) {
-    await this.findOne(id); // Reutiliza a checagem se o fornecedor existe
-    return this.prisma.supplier.delete({
-      where: { id },
-    });
+    await this.findOne(id);
+    return this.prisma.supplier.delete({ where: { id } });
   }
 }

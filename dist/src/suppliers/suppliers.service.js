@@ -18,12 +18,28 @@ let SuppliersService = class SuppliersService {
         this.prisma = prisma;
     }
     create(createSupplierDto) {
-        return this.prisma.supplier.create({
-            data: createSupplierDto,
-        });
+        return this.prisma.supplier.create({ data: createSupplierDto });
     }
-    findAll() {
-        return this.prisma.supplier.findMany();
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [suppliers, total] = await this.prisma.$transaction([
+            this.prisma.supplier.findMany({
+                orderBy: { name: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.supplier.count(),
+        ]);
+        return {
+            data: suppliers,
+            total,
+        };
+    }
+    async findAllNoPagination() {
+        return this.prisma.supplier.findMany({
+            orderBy: { name: 'asc' },
+        });
     }
     async findOne(id) {
         const supplier = await this.prisma.supplier.findUnique({ where: { id } });
@@ -41,9 +57,7 @@ let SuppliersService = class SuppliersService {
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.supplier.delete({
-            where: { id },
-        });
+        return this.prisma.supplier.delete({ where: { id } });
     }
 };
 exports.SuppliersService = SuppliersService;

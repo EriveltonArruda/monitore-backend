@@ -25,8 +25,14 @@ let SuppliersController = class SuppliersController {
     create(createSupplierDto) {
         return this.suppliersService.create(createSupplierDto);
     }
-    findAll() {
-        return this.suppliersService.findAll();
+    findAll(page, limit) {
+        return this.suppliersService.findAll({
+            page: page ? Number(page) : 1,
+            limit: limit ? Number(limit) : 10,
+        });
+    }
+    findAllNoPagination() {
+        return this.suppliersService.findAllNoPagination();
     }
     findOne(id) {
         return this.suppliersService.findOne(id);
@@ -48,10 +54,18 @@ __decorate([
 ], SuppliersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SuppliersController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('all'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], SuppliersController.prototype, "findAll", null);
+], SuppliersController.prototype, "findAllNoPagination", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
