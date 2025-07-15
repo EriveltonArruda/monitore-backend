@@ -18,12 +18,23 @@ let CategoriesService = class CategoriesService {
         this.prisma = prisma;
     }
     create(createCategoryDto) {
-        return this.prisma.category.create({
-            data: createCategoryDto,
-        });
+        return this.prisma.category.create({ data: createCategoryDto });
     }
-    findAll() {
-        return this.prisma.category.findMany();
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [categories, total] = await this.prisma.$transaction([
+            this.prisma.category.findMany({
+                orderBy: { name: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.category.count(),
+        ]);
+        return {
+            data: categories,
+            total,
+        };
     }
     async findOne(id) {
         const category = await this.prisma.category.findUnique({ where: { id } });
@@ -32,7 +43,8 @@ let CategoriesService = class CategoriesService {
         }
         return category;
     }
-    update(id, updateCategoryDto) {
+    async update(id, updateCategoryDto) {
+        await this.findOne(id);
         return this.prisma.category.update({
             where: { id },
             data: updateCategoryDto,
@@ -40,9 +52,7 @@ let CategoriesService = class CategoriesService {
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.category.delete({
-            where: { id },
-        });
+        return this.prisma.category.delete({ where: { id } });
     }
 };
 exports.CategoriesService = CategoriesService;

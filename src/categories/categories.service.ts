@@ -5,16 +5,30 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   create(createCategoryDto: CreateCategoryDto) {
-    return this.prisma.category.create({
-      data: createCategoryDto,
-    });
+    return this.prisma.category.create({ data: createCategoryDto });
   }
 
-  findAll() {
-    return this.prisma.category.findMany();
+  // O método agora é 'async' e retorna um objeto paginado
+  async findAll(params: { page: number, limit: number }) {
+    const { page, limit } = params;
+    const skip = (page - 1) * limit;
+
+    const [categories, total] = await this.prisma.$transaction([
+      this.prisma.category.findMany({
+        orderBy: { name: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.category.count(),
+    ]);
+
+    return {
+      data: categories,
+      total,
+    };
   }
 
   async findOne(id: number) {
@@ -25,7 +39,8 @@ export class CategoriesService {
     return category;
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
+  async update(id: number, updateCategoryDto: UpdateCategoryDto) {
+    await this.findOne(id);
     return this.prisma.category.update({
       where: { id },
       data: updateCategoryDto,
@@ -33,14 +48,7 @@ export class CategoriesService {
   }
 
   async remove(id: number) {
-    // Primeiro, usamos nosso próprio método findOne para checar se a categoria existe.
-    // Se não existir, o findOne já vai disparar o erro 404 para nós.
     await this.findOne(id);
-
-    // Se a linha acima não deu erro, significa que a categoria foi encontrada.
-    // Agora sim podemos deletá-la com segurança.
-    return this.prisma.category.delete({
-      where: { id },
-    });
+    return this.prisma.category.delete({ where: { id } });
   }
 }

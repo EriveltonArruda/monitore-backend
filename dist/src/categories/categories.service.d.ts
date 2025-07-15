@@ -8,18 +8,24 @@ export declare class CategoriesService {
         id: number;
         name: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
-        id: number;
-        name: string;
-    }[]>;
+    findAll(params: {
+        page: number;
+        limit: number;
+    }): Promise<{
+        data: {
+            id: number;
+            name: string;
+        }[];
+        total: number;
+    }>;
     findOne(id: number): Promise<{
         id: number;
         name: string;
     }>;
-    update(id: number, updateCategoryDto: UpdateCategoryDto): import(".prisma/client").Prisma.Prisma__CategoryClient<{
+    update(id: number, updateCategoryDto: UpdateCategoryDto): Promise<{
         id: number;
         name: string;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     remove(id: number): Promise<{
         id: number;
         name: string;

@@ -8,18 +8,21 @@ export declare class CategoriesController {
         id: number;
         name: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
-        id: number;
-        name: string;
-    }[]>;
+    findAll(page?: string, limit?: string): Promise<{
+        data: {
+            id: number;
+            name: string;
+        }[];
+        total: number;
+    }>;
     findOne(id: number): Promise<{
         id: number;
         name: string;
     }>;
-    update(id: number, updateCategoryDto: UpdateCategoryDto): import(".prisma/client").Prisma.Prisma__CategoryClient<{
+    update(id: number, updateCategoryDto: UpdateCategoryDto): Promise<{
         id: number;
         name: string;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     remove(id: number): Promise<{
         id: number;
         name: string;
