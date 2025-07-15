@@ -23,37 +23,40 @@ export declare class ProductsController {
         mainImageUrl: string | null;
         videoUrl: string | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(search?: string, categoryId?: string, status?: string, stockLevel?: 'low' | 'normal'): import(".prisma/client").Prisma.PrismaPromise<({
-        category: {
+    findAll(search?: string, categoryId?: string, status?: string, stockLevel?: 'low' | 'normal', page?: string, limit?: string): Promise<{
+        data: ({
+            category: {
+                id: number;
+                name: string;
+            } | null;
+            supplier: {
+                id: number;
+                email: string | null;
+                name: string;
+                cnpj: string | null;
+                phone: string | null;
+            } | null;
+        } & {
             id: number;
             name: string;
-        } | null;
-        supplier: {
-            id: number;
-            email: string | null;
-            name: string;
-            cnpj: string | null;
-            phone: string | null;
-        } | null;
-    } & {
-        id: number;
-        name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        sku: string | null;
-        description: string | null;
-        unit: string | null;
-        stockQuantity: number;
-        salePrice: number;
-        costPrice: number | null;
-        categoryId: number | null;
-        supplierId: number | null;
-        status: string;
-        minStockQuantity: number;
-        location: string | null;
-        mainImageUrl: string | null;
-        videoUrl: string | null;
-    })[]>;
+            createdAt: Date;
+            updatedAt: Date;
+            sku: string | null;
+            description: string | null;
+            unit: string | null;
+            stockQuantity: number;
+            salePrice: number;
+            costPrice: number | null;
+            categoryId: number | null;
+            supplierId: number | null;
+            status: string;
+            minStockQuantity: number;
+            location: string | null;
+            mainImageUrl: string | null;
+            videoUrl: string | null;
+        })[];
+        total: number;
+    }>;
     findOne(id: number): Promise<{
         category: {
             id: number;

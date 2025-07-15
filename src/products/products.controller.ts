@@ -7,7 +7,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
-  Query,
+  Query, // Importamos o decorator @Query
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -24,7 +24,8 @@ export class ProductsController {
 
   /**
    * ROTA: GET /products
-   * ATUALIZAÇÃO: O método agora também aceita 'status' e 'stockLevel' como filtros.
+   * ATUALIZAÇÃO: O método agora também aceita 'page' e 'limit' para paginação.
+   * Ex: /products?page=2&limit=10
    */
   @Get()
   findAll(
@@ -32,12 +33,16 @@ export class ProductsController {
     @Query('categoryId') categoryId?: string,
     @Query('status') status?: string,
     @Query('stockLevel') stockLevel?: 'low' | 'normal',
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.productsService.findAll({
       search,
       categoryId: categoryId ? Number(categoryId) : undefined,
       status,
       stockLevel,
+      page: page ? Number(page) : 1, // Página padrão é 1
+      limit: limit ? Number(limit) : 10, // Limite padrão de 10 itens por página
     });
   }
 

@@ -25,12 +25,14 @@ let ProductsController = class ProductsController {
     create(createProductDto) {
         return this.productsService.create(createProductDto);
     }
-    findAll(search, categoryId, status, stockLevel) {
+    findAll(search, categoryId, status, stockLevel, page, limit) {
         return this.productsService.findAll({
             search,
             categoryId: categoryId ? Number(categoryId) : undefined,
             status,
             stockLevel,
+            page: page ? Number(page) : 1,
+            limit: limit ? Number(limit) : 10,
         });
     }
     findOne(id) {
@@ -57,8 +59,10 @@ __decorate([
     __param(1, (0, common_1.Query)('categoryId')),
     __param(2, (0, common_1.Query)('status')),
     __param(3, (0, common_1.Query)('stockLevel')),
+    __param(4, (0, common_1.Query)('page')),
+    __param(5, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findAll", null);
 __decorate([

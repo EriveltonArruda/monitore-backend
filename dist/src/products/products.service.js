@@ -29,44 +29,48 @@ let ProductsService = class ProductsService {
             },
         });
     }
-    findAll(params) {
-        const { search, categoryId, status, stockLevel } = params || {};
+    async findAll(params) {
+        const { search, categoryId, status, stockLevel, page = 1, limit = 10 } = params || {};
+        const skip = (page - 1) * limit;
         const andConditions = [];
         if (search) {
             andConditions.push({
                 OR: [
                     { name: { contains: search } },
-                    { sku: { contains: search } },
-                ],
+                    { sku: { contains: search } }
+                ]
             });
         }
         if (categoryId) {
-            andConditions.push({ categoryId: categoryId });
+            andConditions.push({ categoryId });
         }
         if (status) {
-            andConditions.push({ status: status });
+            andConditions.push({ status: status.toUpperCase() });
         }
         if (stockLevel === 'low') {
-            andConditions.push({
-                stockQuantity: { lte: this.prisma.product.fields.minStockQuantity }
-            });
+            andConditions.push({ stockQuantity: { lte: this.prisma.product.fields.minStockQuantity } });
         }
         else if (stockLevel === 'normal') {
-            andConditions.push({
-                stockQuantity: { gt: this.prisma.product.fields.minStockQuantity }
-            });
+            andConditions.push({ stockQuantity: { gt: this.prisma.product.fields.minStockQuantity } });
         }
         const where = andConditions.length > 0 ? { AND: andConditions } : {};
-        return this.prisma.product.findMany({
-            where,
-            include: {
-                category: true,
-                supplier: true,
-            },
-            orderBy: {
-                name: 'asc',
-            },
-        });
+        const [products, total] = await this.prisma.$transaction([
+            this.prisma.product.findMany({
+                where,
+                include: {
+                    category: true,
+                    supplier: true,
+                },
+                orderBy: { name: 'asc' },
+                skip: skip,
+                take: limit,
+            }),
+            this.prisma.product.count({ where }),
+        ]);
+        return {
+            data: products,
+            total,
+        };
     }
     async findOne(id) {
         const product = await this.prisma.product.findUnique({
@@ -92,7 +96,9 @@ let ProductsService = class ProductsService {
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.product.delete({ where: { id } });
+        return this.prisma.product.delete({
+            where: { id },
+        });
     }
 };
 exports.ProductsService = ProductsService;
