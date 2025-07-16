@@ -15,7 +15,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
@@ -44,6 +44,12 @@ export class ProductsController {
       page: page ? Number(page) : 1, // Página padrão é 1
       limit: limit ? Number(limit) : 10, // Limite padrão de 10 itens por página
     });
+  }
+
+  // NOVO ENDPOINT: Busca TODOS os produtos, sem paginação
+  @Get('all')
+  findAllUnpaginated() {
+    return this.productsService.findAllUnpaginated();
   }
 
   @Get(':id')

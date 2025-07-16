@@ -20,9 +20,7 @@ let StockMovementsService = class StockMovementsService {
     async create(createStockMovementDto) {
         const { productId, type, quantity, userId = 1, ...restData } = createStockMovementDto;
         return this.prisma.$transaction(async (tx) => {
-            const product = await tx.product.findUnique({
-                where: { id: productId },
-            });
+            const product = await tx.product.findUnique({ where: { id: productId } });
             if (!product) {
                 throw new common_1.NotFoundException(`Produto com ID #${productId} não encontrado.`);
             }
@@ -30,17 +28,14 @@ let StockMovementsService = class StockMovementsService {
             if (type === 'ENTRADA') {
                 newStockQuantity = product.stockQuantity + quantity;
             }
-            else if (type === 'SAIDA') {
-                if (product.stockQuantity < quantity) {
-                    throw new common_1.BadRequestException(`Estoque insuficiente. Disponível: ${product.stockQuantity}.`);
-                }
-                newStockQuantity = product.stockQuantity - quantity;
-            }
             else if (type === 'AJUSTE') {
                 newStockQuantity = quantity;
             }
             else {
-                throw new common_1.BadRequestException(`Tipo de movimentação inválido: ${type}`);
+                if (product.stockQuantity < quantity) {
+                    throw new common_1.BadRequestException(`Estoque insuficiente.`);
+                }
+                newStockQuantity = product.stockQuantity - quantity;
             }
             await tx.product.update({
                 where: { id: productId },
@@ -58,15 +53,26 @@ let StockMovementsService = class StockMovementsService {
             return movement;
         });
     }
-    findAll() {
-        return this.prisma.stockMovement.findMany({
-            include: {
-                product: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [movements, total] = await this.prisma.$transaction([
+            this.prisma.stockMovement.findMany({
+                include: {
+                    product: true,
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                },
+                skip,
+                take: limit,
+            }),
+            this.prisma.stockMovement.count(),
+        ]);
+        return {
+            data: movements,
+            total,
+        };
     }
 };
 exports.StockMovementsService = StockMovementsService;

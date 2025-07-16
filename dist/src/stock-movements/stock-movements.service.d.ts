@@ -5,8 +5,6 @@ export declare class StockMovementsService {
     constructor(prisma: PrismaService);
     create(createStockMovementDto: CreateStockMovementDto): Promise<{
         id: number;
-        createdAt: Date;
-        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -14,39 +12,47 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        createdAt: Date;
+        productId: number;
         userId: number;
     }>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<({
-        product: {
+    findAll(params: {
+        page: number;
+        limit: number;
+    }): Promise<{
+        data: ({
+            product: {
+                id: number;
+                createdAt: Date;
+                name: string;
+                sku: string | null;
+                description: string | null;
+                unit: string | null;
+                status: string;
+                stockQuantity: number;
+                minStockQuantity: number;
+                salePrice: number;
+                costPrice: number | null;
+                location: string | null;
+                mainImageUrl: string | null;
+                videoUrl: string | null;
+                updatedAt: Date;
+                categoryId: number | null;
+                supplierId: number | null;
+            };
+        } & {
             id: number;
-            name: string;
+            type: string;
+            quantity: number;
+            details: string | null;
+            relatedParty: string | null;
+            unitPriceAtMovement: number | null;
+            notes: string | null;
+            document: string | null;
             createdAt: Date;
-            updatedAt: Date;
-            sku: string | null;
-            description: string | null;
-            unit: string | null;
-            stockQuantity: number;
-            salePrice: number;
-            costPrice: number | null;
-            categoryId: number | null;
-            supplierId: number | null;
-            status: string;
-            minStockQuantity: number;
-            location: string | null;
-            mainImageUrl: string | null;
-            videoUrl: string | null;
-        };
-    } & {
-        id: number;
-        createdAt: Date;
-        productId: number;
-        type: string;
-        quantity: number;
-        details: string | null;
-        relatedParty: string | null;
-        unitPriceAtMovement: number | null;
-        notes: string | null;
-        document: string | null;
-        userId: number;
-    })[]>;
+            productId: number;
+            userId: number;
+        })[];
+        total: number;
+    }>;
 }

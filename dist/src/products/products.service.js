@@ -72,6 +72,16 @@ let ProductsService = class ProductsService {
             total,
         };
     }
+    findAllUnpaginated() {
+        return this.prisma.product.findMany({
+            orderBy: { name: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                salePrice: true,
+            }
+        });
+    }
     async findOne(id) {
         const product = await this.prisma.product.findUnique({
             where: { id },

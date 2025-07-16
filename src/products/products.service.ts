@@ -16,7 +16,7 @@ interface FindAllProductsParams {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(createProductDto: CreateProductDto) {
     const { categoryId, supplierId, ...productData } = createProductDto;
@@ -38,26 +38,26 @@ export class ProductsService {
    */
   async findAll(params?: FindAllProductsParams) {
     const { search, categoryId, status, stockLevel, page = 1, limit = 10 } = params || {};
-    
+
     const skip = (page - 1) * limit; // Calcula quantos itens pular
 
     const andConditions: Prisma.ProductWhereInput[] = [];
-    
+
     // Removemos a opção `mode: 'insensitive'`, pois não é suportada pelo Prisma com SQLite
-    if (search) { 
-      andConditions.push({ 
+    if (search) {
+      andConditions.push({
         OR: [
-          { name: { contains: search } }, 
+          { name: { contains: search } },
           { sku: { contains: search } }
-        ] 
-      }); 
+        ]
+      });
     }
-    
+
     if (categoryId) { andConditions.push({ categoryId }); }
     if (status) { andConditions.push({ status: status.toUpperCase() }); }
     if (stockLevel === 'low') { andConditions.push({ stockQuantity: { lte: this.prisma.product.fields.minStockQuantity } }); }
     else if (stockLevel === 'normal') { andConditions.push({ stockQuantity: { gt: this.prisma.product.fields.minStockQuantity } }); }
-    
+
     const where: Prisma.ProductWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // Usamos $transaction para executar duas consultas em paralelo para eficiência
@@ -82,6 +82,18 @@ export class ProductsService {
       data: products,
       total,
     };
+  }
+
+  // NOVO MÉTODO: Retorna todos os produtos com os campos necessários para o dropdown
+  findAllUnpaginated() {
+    return this.prisma.product.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        salePrice: true,
+      }
+    });
   }
 
   async findOne(id: number) {
