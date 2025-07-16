@@ -5,23 +5,30 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ContactsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(createContactDto: CreateContactDto) {
-    return this.prisma.contact.create({
-      data: createContactDto,
-    });
+    return this.prisma.contact.create({ data: createContactDto });
   }
 
-  // CORREÇÃO APLICADA AQUI:
-  // Substituímos o texto padrão pela lógica real que busca
-  // todos os contatos no banco de dados e os ordena por nome.
-  findAll() {
-    return this.prisma.contact.findMany({
-      orderBy: {
-        name: 'asc',
-      },
-    });
+  // O método agora é 'async' e retorna um objeto paginado
+  async findAll(params: { page: number, limit: number }) {
+    const { page, limit } = params;
+    const skip = (page - 1) * limit;
+
+    const [contacts, total] = await this.prisma.$transaction([
+      this.prisma.contact.findMany({
+        orderBy: { name: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.contact.count(),
+    ]);
+
+    return {
+      data: contacts,
+      total,
+    };
   }
 
   async findOne(id: number) {
@@ -33,7 +40,7 @@ export class ContactsService {
   }
 
   async update(id: number, updateContactDto: UpdateContactDto) {
-    await this.findOne(id); // Garante que o contato existe antes de tentar atualizar
+    await this.findOne(id);
     return this.prisma.contact.update({
       where: { id },
       data: updateContactDto,
@@ -41,9 +48,7 @@ export class ContactsService {
   }
 
   async remove(id: number) {
-    await this.findOne(id); // Garante que o contato existe antes de tentar deletar
-    return this.prisma.contact.delete({
-      where: { id },
-    });
+    await this.findOne(id);
+    return this.prisma.contact.delete({ where: { id } });
   }
 }

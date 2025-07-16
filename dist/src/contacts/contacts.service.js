@@ -18,16 +18,23 @@ let ContactsService = class ContactsService {
         this.prisma = prisma;
     }
     create(createContactDto) {
-        return this.prisma.contact.create({
-            data: createContactDto,
-        });
+        return this.prisma.contact.create({ data: createContactDto });
     }
-    findAll() {
-        return this.prisma.contact.findMany({
-            orderBy: {
-                name: 'asc',
-            },
-        });
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [contacts, total] = await this.prisma.$transaction([
+            this.prisma.contact.findMany({
+                orderBy: { name: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.contact.count(),
+        ]);
+        return {
+            data: contacts,
+            total,
+        };
     }
     async findOne(id) {
         const contact = await this.prisma.contact.findUnique({ where: { id } });
@@ -45,9 +52,7 @@ let ContactsService = class ContactsService {
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.contact.delete({
-            where: { id },
-        });
+        return this.prisma.contact.delete({ where: { id } });
     }
 };
 exports.ContactsService = ContactsService;
