@@ -8,16 +8,20 @@ export declare class UsersService {
         id: number;
         email: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
-        id: number;
-        email: string;
-        name: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }[]>;
+    findAll(params: {
+        page: number;
+        limit: number;
+    }): Promise<{
+        data: {
+            id: number;
+            email: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        total: number;
+    }>;
     findByEmail(email: string): Promise<{
         id: number;
         email: string;
@@ -30,6 +34,9 @@ export declare class UsersService {
         id: number;
         email: string;
         name: string;
+        password: string;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     changePassword(id: number, changePasswordDto: ChangePasswordDto): Promise<{
         id: number;

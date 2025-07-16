@@ -21,34 +21,29 @@ let UsersService = class UsersService {
     async create(createUserDto) {
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
         return this.prisma.user.create({
-            data: {
-                ...createUserDto,
-                password: hashedPassword,
-            },
-            select: { id: true, name: true, email: true, createdAt: true, updatedAt: true }
-        });
-    }
-    findAll() {
-        return this.prisma.user.findMany({
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                createdAt: true,
-                updatedAt: true,
-            }
-        });
-    }
-    async findByEmail(email) {
-        return this.prisma.user.findUnique({
-            where: { email },
-        });
-    }
-    async findOne(id) {
-        const user = await this.prisma.user.findUnique({
-            where: { id },
+            data: { ...createUserDto, password: hashedPassword },
             select: { id: true, name: true, email: true }
         });
+    }
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [users, total] = await this.prisma.$transaction([
+            this.prisma.user.findMany({
+                select: { id: true, name: true, email: true, createdAt: true, updatedAt: true },
+                orderBy: { name: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.user.count(),
+        ]);
+        return { data: users, total };
+    }
+    async findByEmail(email) {
+        return this.prisma.user.findUnique({ where: { email } });
+    }
+    async findOne(id) {
+        const user = await this.prisma.user.findUnique({ where: { id } });
         if (!user) {
             throw new common_1.NotFoundException(`Usuário com ID #${id} não encontrado.`);
         }
@@ -59,17 +54,13 @@ let UsersService = class UsersService {
         const hashedPassword = await bcrypt.hash(changePasswordDto.password, 10);
         return this.prisma.user.update({
             where: { id },
-            data: {
-                password: hashedPassword,
-            },
+            data: { password: hashedPassword },
             select: { id: true, name: true, email: true }
         });
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.user.delete({
-            where: { id },
-        });
+        return this.prisma.user.delete({ where: { id } });
     }
 };
 exports.UsersService = UsersService;
