@@ -5,20 +5,32 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AccountsPayableService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(createAccountsPayableDto: CreateAccountsPayableDto) {
-    // Ao criar, o DTO já garante que o dueDate é uma string de data válida,
-    // e o Prisma consegue lidar com essa conversão na criação.
     return this.prisma.accountPayable.create({
       data: createAccountsPayableDto,
     });
   }
 
-  findAll() {
-    return this.prisma.accountPayable.findMany({
-        orderBy: { dueDate: 'asc' }
-    });
+  // O método agora é 'async' e retorna um objeto paginado
+  async findAll(params: { page: number, limit: number }) {
+    const { page, limit } = params;
+    const skip = (page - 1) * limit;
+
+    const [accounts, total] = await this.prisma.$transaction([
+      this.prisma.accountPayable.findMany({
+        orderBy: { dueDate: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.accountPayable.count(),
+    ]);
+
+    return {
+      data: accounts,
+      total,
+    };
   }
 
   async findOne(id: number) {
@@ -30,24 +42,16 @@ export class AccountsPayableService {
   }
 
   async update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto) {
-    await this.findOne(id); // Garante que a conta existe
+    await this.findOne(id);
 
-    // CORREÇÃO APLICADA AQUI:
-    // Desestruturamos o DTO para separar a data dos outros dados.
-    const { dueDate, ...restData } = updateAccountsPayableDto;
-
-    // Criamos o objeto de dados para atualização.
-    const dataToUpdate: any = { ...restData };
-
-    // Se a data de vencimento foi enviada, nós a convertemos para um objeto Date
-    // que o Prisma entende e aceita para a atualização.
-    if (dueDate) {
-      dataToUpdate.dueDate = new Date(dueDate);
+    const dataToUpdate: any = { ...updateAccountsPayableDto };
+    if (updateAccountsPayableDto.dueDate) {
+      dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
     }
-    
+
     return this.prisma.accountPayable.update({
       where: { id },
-      data: dataToUpdate, // Usamos os dados já tratados
+      data: dataToUpdate,
     });
   }
 

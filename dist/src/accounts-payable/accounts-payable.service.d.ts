@@ -7,51 +7,57 @@ export declare class AccountsPayableService {
     create(createAccountsPayableDto: CreateAccountsPayableDto): import(".prisma/client").Prisma.Prisma__AccountPayableClient<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
-        id: number;
-        name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        category: string;
-        status: string;
-        value: number;
-        dueDate: Date;
-    }[]>;
+    findAll(params: {
+        page: number;
+        limit: number;
+    }): Promise<{
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            value: number;
+            dueDate: Date;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        total: number;
+    }>;
     findOne(id: number): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     remove(id: number): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
 }

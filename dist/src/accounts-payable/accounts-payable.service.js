@@ -22,10 +22,21 @@ let AccountsPayableService = class AccountsPayableService {
             data: createAccountsPayableDto,
         });
     }
-    findAll() {
-        return this.prisma.accountPayable.findMany({
-            orderBy: { dueDate: 'asc' }
-        });
+    async findAll(params) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+        const [accounts, total] = await this.prisma.$transaction([
+            this.prisma.accountPayable.findMany({
+                orderBy: { dueDate: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.accountPayable.count(),
+        ]);
+        return {
+            data: accounts,
+            total,
+        };
     }
     async findOne(id) {
         const account = await this.prisma.accountPayable.findUnique({ where: { id } });
@@ -36,10 +47,9 @@ let AccountsPayableService = class AccountsPayableService {
     }
     async update(id, updateAccountsPayableDto) {
         await this.findOne(id);
-        const { dueDate, ...restData } = updateAccountsPayableDto;
-        const dataToUpdate = { ...restData };
-        if (dueDate) {
-            dataToUpdate.dueDate = new Date(dueDate);
+        const dataToUpdate = { ...updateAccountsPayableDto };
+        if (updateAccountsPayableDto.dueDate) {
+            dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
         }
         return this.prisma.accountPayable.update({
             where: { id },

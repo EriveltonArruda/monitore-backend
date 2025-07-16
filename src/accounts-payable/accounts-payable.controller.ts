@@ -1,20 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query } from '@nestjs/common';
 import { AccountsPayableService } from './accounts-payable.service';
 import { CreateAccountsPayableDto } from './dto/create-accounts-payable.dto';
 import { UpdateAccountsPayableDto } from './dto/update-accounts-payable.dto';
 
 @Controller('accounts-payable')
 export class AccountsPayableController {
-  constructor(private readonly accountsPayableService: AccountsPayableService) {}
+  constructor(private readonly accountsPayableService: AccountsPayableService) { }
 
   @Post()
   create(@Body() createAccountsPayableDto: CreateAccountsPayableDto) {
     return this.accountsPayableService.create(createAccountsPayableDto);
   }
 
+  // O método agora aceita 'page' e 'limit'
   @Get()
-  findAll() {
-    return this.accountsPayableService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.accountsPayableService.findAll({
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    });
   }
 
   @Get(':id')

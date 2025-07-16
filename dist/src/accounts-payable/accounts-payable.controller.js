@@ -25,8 +25,11 @@ let AccountsPayableController = class AccountsPayableController {
     create(createAccountsPayableDto) {
         return this.accountsPayableService.create(createAccountsPayableDto);
     }
-    findAll() {
-        return this.accountsPayableService.findAll();
+    findAll(page, limit) {
+        return this.accountsPayableService.findAll({
+            page: page ? Number(page) : 1,
+            limit: limit ? Number(limit) : 10,
+        });
     }
     findOne(id) {
         return this.accountsPayableService.findOne(id);
@@ -48,8 +51,10 @@ __decorate([
 ], AccountsPayableController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findAll", null);
 __decorate([
