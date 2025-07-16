@@ -36,6 +36,11 @@ let CategoriesService = class CategoriesService {
             total,
         };
     }
+    findAllUnpaginated() {
+        return this.prisma.category.findMany({
+            orderBy: { name: 'asc' },
+        });
+    }
     async findOne(id) {
         const category = await this.prisma.category.findUnique({ where: { id } });
         if (!category) {

@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class SuppliersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(createSupplierDto: CreateSupplierDto) {
     return this.prisma.supplier.create({ data: createSupplierDto });
@@ -31,7 +31,8 @@ export class SuppliersService {
     };
   }
 
-  async findAllNoPagination() {
+  // NOVO MÉTODO: Retorna todos os fornecedores
+  findAllUnpaginated() {
     return this.prisma.supplier.findMany({
       orderBy: { name: 'asc' },
     });

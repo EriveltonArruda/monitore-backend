@@ -31,8 +31,8 @@ let SuppliersController = class SuppliersController {
             limit: limit ? Number(limit) : 10,
         });
     }
-    findAllNoPagination() {
-        return this.suppliersService.findAllNoPagination();
+    findAllUnpaginated() {
+        return this.suppliersService.findAllUnpaginated();
     }
     findOne(id) {
         return this.suppliersService.findOne(id);
@@ -65,7 +65,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], SuppliersController.prototype, "findAllNoPagination", null);
+], SuppliersController.prototype, "findAllUnpaginated", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

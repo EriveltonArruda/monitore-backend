@@ -31,6 +31,13 @@ export class CategoriesService {
     };
   }
 
+  // NOVO MÉTODO: Retorna todas as categorias
+  findAllUnpaginated() {
+    return this.prisma.category.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async findOne(id: number) {
     const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) {

@@ -13,6 +13,7 @@ export class SuppliersController {
   }
 
   // O método agora aceita 'page' e 'limit'
+  // Este endpoint busca os fornecedores de forma paginada
   @Get()
   findAll(
     @Query('page') page?: string,
@@ -24,10 +25,10 @@ export class SuppliersController {
     });
   }
 
-  // Rota para pegar todos os fornecedores sem paginação
+  // NOVO ENDPOINT: Busca TODOS os fornecedores, sem paginação
   @Get('all')
-  findAllNoPagination() {
-    return this.suppliersService.findAllNoPagination();
+  findAllUnpaginated() {
+    return this.suppliersService.findAllUnpaginated();
   }
 
   @Get(':id')

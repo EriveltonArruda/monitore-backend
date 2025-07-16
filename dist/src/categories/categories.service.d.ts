@@ -18,6 +18,10 @@ export declare class CategoriesService {
         }[];
         total: number;
     }>;
+    findAllUnpaginated(): import(".prisma/client").Prisma.PrismaPromise<{
+        id: number;
+        name: string;
+    }[]>;
     findOne(id: number): Promise<{
         id: number;
         name: string;

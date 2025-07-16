@@ -21,7 +21,7 @@ export declare class SuppliersController {
         }[];
         total: number;
     }>;
-    findAllNoPagination(): Promise<{
+    findAllUnpaginated(): import(".prisma/client").Prisma.PrismaPromise<{
         id: number;
         name: string;
         cnpj: string | null;

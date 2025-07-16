@@ -24,6 +24,12 @@ export class CategoriesController {
     });
   }
 
+  // NOVO ENDPOINT: Busca TODAS as categorias, sem paginação
+  @Get('all')
+  findAllUnpaginated() {
+    return this.categoriesService.findAllUnpaginated();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);

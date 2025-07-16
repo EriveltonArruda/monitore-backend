@@ -36,7 +36,7 @@ let SuppliersService = class SuppliersService {
             total,
         };
     }
-    async findAllNoPagination() {
+    findAllUnpaginated() {
         return this.prisma.supplier.findMany({
             orderBy: { name: 'asc' },
         });
