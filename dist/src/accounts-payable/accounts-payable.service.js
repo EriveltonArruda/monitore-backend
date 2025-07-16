@@ -23,15 +23,25 @@ let AccountsPayableService = class AccountsPayableService {
         });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, month, year } = params;
         const skip = (page - 1) * limit;
+        const where = {};
+        if (month && year) {
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0);
+            where.dueDate = {
+                gte: startDate,
+                lte: endDate,
+            };
+        }
         const [accounts, total] = await this.prisma.$transaction([
             this.prisma.accountPayable.findMany({
+                where,
                 orderBy: { dueDate: 'asc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.accountPayable.count(),
+            this.prisma.accountPayable.count({ where }),
         ]);
         return {
             data: accounts,

@@ -14,7 +14,7 @@ export declare class AccountsPayableController {
         createdAt: Date;
         updatedAt: Date;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(page?: string, limit?: string): Promise<{
+    findAll(page?: string, limit?: string, month?: string, year?: string): Promise<{
         data: {
             id: number;
             name: string;

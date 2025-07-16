@@ -2,6 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAccountsPayableDto } from './dto/create-accounts-payable.dto';
 import { UpdateAccountsPayableDto } from './dto/update-accounts-payable.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+
+// A interface de parâmetros agora inclui os filtros de data
+interface FindAllAccountsParams {
+  page: number;
+  limit: number;
+  month?: number;
+  year?: number;
+}
 
 @Injectable()
 export class AccountsPayableService {
@@ -13,18 +22,30 @@ export class AccountsPayableService {
     });
   }
 
-  // O método agora é 'async' e retorna um objeto paginado
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: FindAllAccountsParams) {
+    const { page, limit, month, year } = params;
     const skip = (page - 1) * limit;
+
+    // Construímos a cláusula 'where' dinamicamente
+    const where: Prisma.AccountPayableWhereInput = {};
+
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0); // O dia 0 do próximo mês é o último dia do mês atual
+      where.dueDate = {
+        gte: startDate, // Maior ou igual ao primeiro dia do mês
+        lte: endDate,   // Menor ou igual ao último dia do mês
+      };
+    }
 
     const [accounts, total] = await this.prisma.$transaction([
       this.prisma.accountPayable.findMany({
+        where,
         orderBy: { dueDate: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.accountPayable.count(),
+      this.prisma.accountPayable.count({ where }),
     ]);
 
     return {

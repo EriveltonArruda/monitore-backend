@@ -12,15 +12,19 @@ export class AccountsPayableController {
     return this.accountsPayableService.create(createAccountsPayableDto);
   }
 
-  // O método agora aceita 'page' e 'limit'
+  // O método agora aceita 'month' e 'year' como filtros
   @Get()
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
   ) {
     return this.accountsPayableService.findAll({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 10,
+      month: month ? Number(month) : undefined,
+      year: year ? Number(year) : undefined,
     });
   }
 
