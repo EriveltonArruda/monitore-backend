@@ -6,13 +6,13 @@ export declare class ContactsService {
     constructor(prisma: PrismaService);
     create(createContactDto: CreateContactDto): import(".prisma/client").Prisma.Prisma__ContactClient<{
         id: number;
-        name: string;
-        company: string | null;
         email: string | null;
-        phone: string | null;
-        type: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
+        phone: string | null;
+        type: string;
+        company: string | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
     findAll(params: {
         page: number;
@@ -20,44 +20,44 @@ export declare class ContactsService {
     }): Promise<{
         data: {
             id: number;
-            name: string;
-            company: string | null;
             email: string | null;
-            phone: string | null;
-            type: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
+            phone: string | null;
+            type: string;
+            company: string | null;
         }[];
         total: number;
     }>;
     findOne(id: number): Promise<{
         id: number;
-        name: string;
-        company: string | null;
         email: string | null;
-        phone: string | null;
-        type: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
+        phone: string | null;
+        type: string;
+        company: string | null;
     }>;
     update(id: number, updateContactDto: UpdateContactDto): Promise<{
         id: number;
-        name: string;
-        company: string | null;
         email: string | null;
-        phone: string | null;
-        type: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
+        phone: string | null;
+        type: string;
+        company: string | null;
     }>;
     remove(id: number): Promise<{
         id: number;
-        name: string;
-        company: string | null;
         email: string | null;
-        phone: string | null;
-        type: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
+        phone: string | null;
+        type: string;
+        company: string | null;
     }>;
 }

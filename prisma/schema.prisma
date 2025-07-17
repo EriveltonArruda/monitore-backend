@@ -55,15 +55,19 @@ model StockMovement {
 }
 
 model AccountPayable {
-  id          Int      @id @default(autoincrement())
-  name        String
-  category    String
-  value       Float
-  dueDate     DateTime
-  status      String   @default("A_PAGAR")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  name               String
+  category           String
+  value              Float
+  dueDate            DateTime
+  status             String   @default("A_PAGAR")
+
+  installmentType    String   @default("UNICA") // UNICA ou PARCELADO
+  installments       Int?     // Total de parcelas (opcional para UNICA)
+  currentInstallment Int?     // Número da parcela atual (opcional para UNICA)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // ========= MODELOS DE SUPORTE =========

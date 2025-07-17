@@ -12,12 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateAccountsPayableDto = void 0;
 const class_validator_1 = require("class-validator");
 const allowedStatus = ['A_PAGAR', 'PAGO', 'VENCIDO'];
+const allowedInstallmentTypes = ['UNICA', 'PARCELADO'];
 class CreateAccountsPayableDto {
     name;
     category;
     value;
     dueDate;
     status;
+    installmentType;
+    installments;
+    currentInstallment;
 }
 exports.CreateAccountsPayableDto = CreateAccountsPayableDto;
 __decorate([
@@ -44,4 +48,20 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateAccountsPayableDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(allowedInstallmentTypes),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateAccountsPayableDto.prototype, "installmentType", void 0);
+__decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], CreateAccountsPayableDto.prototype, "installments", void 0);
+__decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], CreateAccountsPayableDto.prototype, "currentInstallment", void 0);
 //# sourceMappingURL=create-accounts-payable.dto.js.map

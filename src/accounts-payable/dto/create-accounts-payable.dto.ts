@@ -1,7 +1,15 @@
-import { IsString, IsNotEmpty, IsNumber, IsDateString, IsOptional, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsIn,
+  IsInt,
+} from 'class-validator';
 
-// Lista de status permitidos para validação
 const allowedStatus = ['A_PAGAR', 'PAGO', 'VENCIDO'];
+const allowedInstallmentTypes = ['UNICA', 'PARCELADO'];
 
 export class CreateAccountsPayableDto {
   @IsString()
@@ -22,4 +30,17 @@ export class CreateAccountsPayableDto {
   @IsIn(allowedStatus)
   @IsOptional()
   status?: string;
+
+  @IsString()
+  @IsIn(allowedInstallmentTypes)
+  @IsOptional()
+  installmentType?: string; // UNICA ou PARCELADO
+
+  @IsInt()
+  @IsOptional()
+  installments?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  currentInstallment?: number | null;
 }

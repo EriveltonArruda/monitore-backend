@@ -17,6 +17,14 @@ export class AccountsPayableService {
   constructor(private prisma: PrismaService) { }
 
   create(createAccountsPayableDto: CreateAccountsPayableDto) {
+    const { installmentType } = createAccountsPayableDto;
+
+    // Se for pagamento único, zera as parcelas
+    if (installmentType === 'UNICA') {
+      createAccountsPayableDto.installments = null;
+      createAccountsPayableDto.currentInstallment = null;
+    }
+
     return this.prisma.accountPayable.create({
       data: createAccountsPayableDto,
     });
@@ -66,8 +74,16 @@ export class AccountsPayableService {
     await this.findOne(id);
 
     const dataToUpdate: any = { ...updateAccountsPayableDto };
+
+    // Se a data de vencimento vier como string, converte para Date
     if (updateAccountsPayableDto.dueDate) {
       dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
+    }
+
+    // Se for pagamento único, zera as parcelas
+    if (updateAccountsPayableDto.installmentType === 'UNICA') {
+      dataToUpdate.installments = null;
+      dataToUpdate.currentInstallment = null;
     }
 
     return this.prisma.accountPayable.update({

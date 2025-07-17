@@ -18,6 +18,11 @@ let AccountsPayableService = class AccountsPayableService {
         this.prisma = prisma;
     }
     create(createAccountsPayableDto) {
+        const { installmentType } = createAccountsPayableDto;
+        if (installmentType === 'UNICA') {
+            createAccountsPayableDto.installments = null;
+            createAccountsPayableDto.currentInstallment = null;
+        }
         return this.prisma.accountPayable.create({
             data: createAccountsPayableDto,
         });
@@ -60,6 +65,10 @@ let AccountsPayableService = class AccountsPayableService {
         const dataToUpdate = { ...updateAccountsPayableDto };
         if (updateAccountsPayableDto.dueDate) {
             dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
+        }
+        if (updateAccountsPayableDto.installmentType === 'UNICA') {
+            dataToUpdate.installments = null;
+            dataToUpdate.currentInstallment = null;
         }
         return this.prisma.accountPayable.update({
             where: { id },

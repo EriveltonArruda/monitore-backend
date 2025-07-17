@@ -4,4 +4,7 @@ export declare class CreateAccountsPayableDto {
     value: number;
     dueDate: Date;
     status?: string;
+    installmentType?: string;
+    installments?: number | null;
+    currentInstallment?: number | null;
 }
