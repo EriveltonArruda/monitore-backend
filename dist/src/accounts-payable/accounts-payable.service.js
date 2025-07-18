@@ -61,19 +61,38 @@ let AccountsPayableService = class AccountsPayableService {
         return account;
     }
     async update(id, updateAccountsPayableDto) {
-        await this.findOne(id);
+        const existingAccount = await this.findOne(id);
         const dataToUpdate = { ...updateAccountsPayableDto };
         if (updateAccountsPayableDto.dueDate) {
             dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
         }
-        if (updateAccountsPayableDto.installmentType === 'UNICA') {
-            dataToUpdate.installments = null;
-            dataToUpdate.currentInstallment = null;
-        }
-        return this.prisma.accountPayable.update({
+        const statusUpdatedToPaid = updateAccountsPayableDto.status === 'PAGO';
+        const updatedAccount = await this.prisma.accountPayable.update({
             where: { id },
             data: dataToUpdate,
         });
+        if (statusUpdatedToPaid &&
+            existingAccount.installmentType === 'PARCELADO' &&
+            existingAccount.currentInstallment &&
+            existingAccount.installments &&
+            existingAccount.currentInstallment < existingAccount.installments) {
+            const nextInstallment = existingAccount.currentInstallment + 1;
+            const currentDueDate = new Date(existingAccount.dueDate);
+            const nextDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 1));
+            await this.prisma.accountPayable.create({
+                data: {
+                    name: existingAccount.name,
+                    category: existingAccount.category,
+                    value: existingAccount.value,
+                    dueDate: nextDueDate,
+                    status: 'A_PAGAR',
+                    installmentType: 'PARCELADO',
+                    installments: existingAccount.installments,
+                    currentInstallment: nextInstallment,
+                },
+            });
+        }
+        return updatedAccount;
     }
     async remove(id) {
         await this.findOne(id);

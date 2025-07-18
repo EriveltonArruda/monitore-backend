@@ -71,25 +71,54 @@ export class AccountsPayableService {
   }
 
   async update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto) {
-    await this.findOne(id);
+    const existingAccount = await this.findOne(id);
 
     const dataToUpdate: any = { ...updateAccountsPayableDto };
 
-    // Se a data de vencimento vier como string, converte para Date
+    // Converte a data se necessário
     if (updateAccountsPayableDto.dueDate) {
       dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
     }
 
-    // Se for pagamento único, zera as parcelas
-    if (updateAccountsPayableDto.installmentType === 'UNICA') {
-      dataToUpdate.installments = null;
-      dataToUpdate.currentInstallment = null;
-    }
+    // Verifica se o status foi alterado para "PAGO"
+    const statusUpdatedToPaid = updateAccountsPayableDto.status === 'PAGO';
 
-    return this.prisma.accountPayable.update({
+    // Atualiza a parcela atual para "PAGO"
+    const updatedAccount = await this.prisma.accountPayable.update({
       where: { id },
       data: dataToUpdate,
     });
+
+    // Se for parcelado, status foi alterado para PAGO e ainda restam parcelas...
+    if (
+      statusUpdatedToPaid &&
+      existingAccount.installmentType === 'PARCELADO' &&
+      existingAccount.currentInstallment &&
+      existingAccount.installments &&
+      existingAccount.currentInstallment < existingAccount.installments
+    ) {
+      const nextInstallment = existingAccount.currentInstallment + 1;
+
+      // Calcula a nova data de vencimento adicionando um mês
+      const currentDueDate = new Date(existingAccount.dueDate);
+      const nextDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 1));
+
+      // Cria a nova parcela no banco de dados
+      await this.prisma.accountPayable.create({
+        data: {
+          name: existingAccount.name,
+          category: existingAccount.category,
+          value: existingAccount.value,
+          dueDate: nextDueDate,
+          status: 'A_PAGAR',
+          installmentType: 'PARCELADO',
+          installments: existingAccount.installments,
+          currentInstallment: nextInstallment,
+        },
+      });
+    }
+
+    return updatedAccount;
   }
 
   async remove(id: number) {
