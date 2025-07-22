@@ -18,10 +18,15 @@ let AccountsPayableService = class AccountsPayableService {
         this.prisma = prisma;
     }
     create(createAccountsPayableDto) {
-        const { installmentType } = createAccountsPayableDto;
+        const { installmentType, dueDate } = createAccountsPayableDto;
         if (installmentType === 'UNICA') {
             createAccountsPayableDto.installments = null;
             createAccountsPayableDto.currentInstallment = null;
+        }
+        if (dueDate) {
+            const parsed = new Date(dueDate);
+            parsed.setHours(0, 0, 0, 0);
+            createAccountsPayableDto.dueDate = parsed;
         }
         return this.prisma.accountPayable.create({
             data: createAccountsPayableDto,
@@ -34,6 +39,7 @@ let AccountsPayableService = class AccountsPayableService {
         if (month && year) {
             const startDate = new Date(year, month - 1, 1);
             const endDate = new Date(year, month, 0);
+            endDate.setHours(23, 59, 59, 999);
             where.dueDate = {
                 gte: startDate,
                 lte: endDate,
@@ -45,6 +51,9 @@ let AccountsPayableService = class AccountsPayableService {
                 orderBy: { dueDate: 'asc' },
                 skip,
                 take: limit,
+                include: {
+                    payments: true,
+                },
             }),
             this.prisma.accountPayable.count({ where }),
         ]);
@@ -54,7 +63,9 @@ let AccountsPayableService = class AccountsPayableService {
         };
     }
     async findOne(id) {
-        const account = await this.prisma.accountPayable.findUnique({ where: { id } });
+        const account = await this.prisma.accountPayable.findUnique({
+            where: { id },
+        });
         if (!account) {
             throw new common_1.NotFoundException(`Conta com ID #${id} não encontrada.`);
         }
@@ -64,13 +75,23 @@ let AccountsPayableService = class AccountsPayableService {
         const existingAccount = await this.findOne(id);
         const dataToUpdate = { ...updateAccountsPayableDto };
         if (updateAccountsPayableDto.dueDate) {
-            dataToUpdate.dueDate = new Date(updateAccountsPayableDto.dueDate);
+            const parsed = new Date(updateAccountsPayableDto.dueDate);
+            parsed.setHours(0, 0, 0, 0);
+            dataToUpdate.dueDate = parsed;
         }
         const statusUpdatedToPaid = updateAccountsPayableDto.status === 'PAGO';
         const updatedAccount = await this.prisma.accountPayable.update({
             where: { id },
             data: dataToUpdate,
         });
+        if (statusUpdatedToPaid) {
+            await this.prisma.payment.create({
+                data: {
+                    accountId: id,
+                    paidAt: new Date(),
+                },
+            });
+        }
         if (statusUpdatedToPaid &&
             existingAccount.installmentType === 'PARCELADO' &&
             existingAccount.currentInstallment &&
@@ -79,6 +100,7 @@ let AccountsPayableService = class AccountsPayableService {
             const nextInstallment = existingAccount.currentInstallment + 1;
             const currentDueDate = new Date(existingAccount.dueDate);
             const nextDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 1));
+            nextDueDate.setHours(0, 0, 0, 0);
             await this.prisma.accountPayable.create({
                 data: {
                     name: existingAccount.name,
@@ -98,6 +120,26 @@ let AccountsPayableService = class AccountsPayableService {
         await this.findOne(id);
         return this.prisma.accountPayable.delete({
             where: { id },
+        });
+    }
+    async registerPayment(accountId, paidAt) {
+        const account = await this.prisma.accountPayable.findUnique({
+            where: { id: accountId },
+        });
+        if (!account) {
+            throw new common_1.NotFoundException('Conta a pagar não encontrada.');
+        }
+        if (account.status !== 'PAGO') {
+            await this.prisma.accountPayable.update({
+                where: { id: accountId },
+                data: { status: 'PAGO' },
+            });
+        }
+        return this.prisma.payment.create({
+            data: {
+                accountId,
+                paidAt,
+            },
         });
     }
 };

@@ -10,28 +10,28 @@ datasource db {
 // ========= MODELOS PRINCIPAIS =========
 
 model Product {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  sku                String?  @unique
-  description        String?
-  unit               String?
-  status             String   @default("ATIVO")
-  stockQuantity      Int
-  minStockQuantity   Int      @default(0)
-  salePrice          Float
-  costPrice          Float?
-  location           String?
-  mainImageUrl       String?
-  videoUrl           String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  
+  id               Int      @id @default(autoincrement())
+  name             String
+  sku              String?  @unique
+  description      String?
+  unit             String?
+  status           String   @default("ATIVO")
+  stockQuantity    Int
+  minStockQuantity Int      @default(0)
+  salePrice        Float
+  costPrice        Float?
+  location         String?
+  mainImageUrl     String?
+  videoUrl         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   category   Category? @relation(fields: [categoryId], references: [id])
   categoryId Int?
-  
+
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
   supplierId Int?
-  
+
   images    ProductImage[]
   movements StockMovement[]
 }
@@ -46,28 +46,38 @@ model StockMovement {
   notes               String?
   document            String?
   createdAt           DateTime @default(now())
-  
+
   product   Product @relation(fields: [productId], references: [id])
   productId Int
-  
+
   user   User @relation(fields: [userId], references: [id])
   userId Int
 }
 
 model AccountPayable {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  category           String
-  value              Float
-  dueDate            DateTime
-  status             String   @default("A_PAGAR")
+  id       Int      @id @default(autoincrement())
+  name     String
+  category String
+  value    Float
+  dueDate  DateTime
+  status   String   @default("A_PAGAR")
 
-  installmentType    String   @default("UNICA") // UNICA ou PARCELADO
-  installments       Int?     // Total de parcelas (opcional para UNICA)
-  currentInstallment Int?     // Número da parcela atual (opcional para UNICA)
+  installmentType    String @default("UNICA") // UNICA ou PARCELADO
+  installments       Int? // Total de parcelas (opcional para UNICA)
+  currentInstallment Int? // Número da parcela atual (opcional para UNICA)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+}
+
+model Payment {
+  id        Int            @id @default(autoincrement())
+  accountId Int
+  account   AccountPayable @relation(fields: [accountId], references: [id])
+  paidAt    DateTime
+  createdAt DateTime       @default(now())
 }
 
 // ========= MODELOS DE SUPORTE =========
@@ -79,14 +89,14 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   movements StockMovement[]
 }
 
 model Category {
   id   Int    @id @default(autoincrement())
   name String @unique
-  
+
   products Product[]
 }
 
@@ -96,26 +106,26 @@ model Supplier {
   cnpj  String? @unique
   phone String?
   email String? @unique
-  
+
   products Product[]
 }
 
 model Contact {
-  id        Int      @id @default(autoincrement())
-  name      String
-  company   String?
-  email     String?  @unique
-  phone     String?
-  type      String   @default("Cliente")
-  
+  id      Int     @id @default(autoincrement())
+  name    String
+  company String?
+  email   String? @unique
+  phone   String?
+  type    String  @default("Cliente")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model ProductImage {
-  id        Int     @id @default(autoincrement())
-  url       String
-  
+  id  Int    @id @default(autoincrement())
+  url String
+
   product   Product @relation(fields: [productId], references: [id])
   productId Int
 }

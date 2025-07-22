@@ -14,70 +14,83 @@ export declare class AccountsPayableService {
     create(createAccountsPayableDto: CreateAccountsPayableDto): Prisma.Prisma__AccountPayableClient<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, Prisma.PrismaClientOptions>;
     findAll(params: FindAllAccountsParams): Promise<{
-        data: {
+        data: ({
+            payments: {
+                id: number;
+                createdAt: Date;
+                accountId: number;
+                paidAt: Date;
+            }[];
+        } & {
             id: number;
             name: string;
+            createdAt: Date;
+            updatedAt: Date;
             category: string;
+            status: string;
             value: number;
             dueDate: Date;
-            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
-            createdAt: Date;
-            updatedAt: Date;
-        }[];
+        })[];
         total: number;
     }>;
     findOne(id: number): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     remove(id: number): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+    }>;
+    registerPayment(accountId: number, paidAt: Date): Promise<{
+        id: number;
         createdAt: Date;
-        updatedAt: Date;
+        accountId: number;
+        paidAt: Date;
     }>;
 }
 export {};
