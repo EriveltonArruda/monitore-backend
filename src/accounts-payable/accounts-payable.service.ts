@@ -113,6 +113,7 @@ export class AccountsPayableService {
         data: {
           accountId: id,
           paidAt: new Date(),
+          amount: updatedAccount.value, // usa o valor da conta atualizada
         },
       });
     }
@@ -151,6 +152,13 @@ export class AccountsPayableService {
   // Remoção de conta
   async remove(id: number) {
     await this.findOne(id);
+
+    // Apaga todos os pagamentos vinculados à conta
+    await this.prisma.payment.deleteMany({
+      where: { accountId: id },
+    });
+
+    // Agora pode apagar a conta com segurança
     return this.prisma.accountPayable.delete({
       where: { id },
     });

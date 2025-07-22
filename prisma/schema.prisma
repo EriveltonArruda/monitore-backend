@@ -77,6 +77,7 @@ model Payment {
   accountId Int
   account   AccountPayable @relation(fields: [accountId], references: [id])
   paidAt    DateTime
+  amount    Float?
   createdAt DateTime       @default(now())
 }
 

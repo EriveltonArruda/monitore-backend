@@ -12,6 +12,7 @@ import { ContactsModule } from './contacts/contacts.module';
 import { AccountsPayableModule } from './accounts-payable/accounts-payable.module'; 
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AuthModule } from './auth/auth.module';
     AccountsPayableModule,
     UsersModule,
     AuthModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

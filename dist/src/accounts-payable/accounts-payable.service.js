@@ -89,6 +89,7 @@ let AccountsPayableService = class AccountsPayableService {
                 data: {
                     accountId: id,
                     paidAt: new Date(),
+                    amount: updatedAccount.value,
                 },
             });
         }
@@ -118,6 +119,9 @@ let AccountsPayableService = class AccountsPayableService {
     }
     async remove(id) {
         await this.findOne(id);
+        await this.prisma.payment.deleteMany({
+            where: { accountId: id },
+        });
         return this.prisma.accountPayable.delete({
             where: { id },
         });

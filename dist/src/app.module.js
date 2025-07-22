@@ -21,6 +21,7 @@ const contacts_module_1 = require("./contacts/contacts.module");
 const accounts_payable_module_1 = require("./accounts-payable/accounts-payable.module");
 const users_module_1 = require("./users/users.module");
 const auth_module_1 = require("./auth/auth.module");
+const payments_module_1 = require("./payments/payments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -38,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
             accounts_payable_module_1.AccountsPayableModule,
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
+            payments_module_1.PaymentsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
