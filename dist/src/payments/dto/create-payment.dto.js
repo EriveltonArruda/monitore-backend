@@ -11,10 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreatePaymentDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class CreatePaymentDto {
     accountId;
     paidAt;
     amount;
+    bankAccount;
 }
 exports.CreatePaymentDto = CreatePaymentDto;
 __decorate([
@@ -22,11 +24,17 @@ __decorate([
     __metadata("design:type", Number)
 ], CreatePaymentDto.prototype, "accountId", void 0);
 __decorate([
-    (0, class_validator_1.IsISO8601)(),
-    __metadata("design:type", String)
+    (0, class_transformer_1.Type)(() => Date),
+    (0, class_validator_1.IsDate)(),
+    __metadata("design:type", Date)
 ], CreatePaymentDto.prototype, "paidAt", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreatePaymentDto.prototype, "amount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreatePaymentDto.prototype, "bankAccount", void 0);
 //# sourceMappingURL=create-payment.dto.js.map

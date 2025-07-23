@@ -85,13 +85,20 @@ let AccountsPayableService = class AccountsPayableService {
             data: dataToUpdate,
         });
         if (statusUpdatedToPaid) {
-            await this.prisma.payment.create({
-                data: {
-                    accountId: id,
-                    paidAt: new Date(),
-                    amount: updatedAccount.value,
-                },
+            const existingPayments = await this.prisma.payment.findMany({
+                where: { accountId: id },
             });
+            const totalPaid = existingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            const remainingAmount = updatedAccount.value - totalPaid;
+            if (remainingAmount > 0) {
+                await this.prisma.payment.create({
+                    data: {
+                        accountId: id,
+                        paidAt: new Date(),
+                        amount: remainingAmount,
+                    },
+                });
+            }
         }
         if (statusUpdatedToPaid &&
             existingAccount.installmentType === 'PARCELADO' &&

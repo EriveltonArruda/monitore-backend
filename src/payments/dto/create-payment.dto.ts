@@ -1,12 +1,18 @@
-import { IsNumber, IsISO8601 } from 'class-validator';
+import { IsNumber, IsDate, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreatePaymentDto {
   @IsNumber()
   accountId: number;
 
-  @IsISO8601()
-  paidAt: string;
+  @Type(() => Date)
+  @IsDate()
+  paidAt: Date;
 
   @IsNumber()
   amount: number;
+
+  @IsOptional()
+  @IsString()
+  bankAccount?: string;
 }

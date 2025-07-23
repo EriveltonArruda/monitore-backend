@@ -33,6 +33,7 @@ let PaymentsController = class PaymentsController {
             accountId: body.accountId,
             paidAt: new Date(body.paidAt),
             amount: body.amount,
+            bankAccount: body.bankAccount ?? undefined,
         });
     }
 };

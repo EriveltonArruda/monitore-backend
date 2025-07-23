@@ -9,12 +9,12 @@ export declare class StockMovementsService {
         productId: number;
         type: string;
         quantity: number;
-        userId: number;
         details: string | null;
         relatedParty: string | null;
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        userId: number;
     }>;
     findAll(params: {
         page: number;
@@ -26,14 +26,14 @@ export declare class StockMovementsService {
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                categoryId: number | null;
-                supplierId: number | null;
                 sku: string | null;
                 description: string | null;
                 unit: string | null;
                 stockQuantity: number;
                 salePrice: number;
                 costPrice: number | null;
+                categoryId: number | null;
+                supplierId: number | null;
                 status: string;
                 minStockQuantity: number;
                 location: string | null;
@@ -46,12 +46,12 @@ export declare class StockMovementsService {
             productId: number;
             type: string;
             quantity: number;
-            userId: number;
             details: string | null;
             relatedParty: string | null;
             unitPriceAtMovement: number | null;
             notes: string | null;
             document: string | null;
+            userId: number;
         })[];
         total: number;
     }>;

@@ -12,12 +12,18 @@ export class PaymentsService {
     });
   }
 
-  async create(data: { accountId: number; paidAt: Date; amount: number }) {
+  async create(data: {
+    accountId: number;
+    paidAt: Date;
+    amount: number;
+    bankAccount?: string;
+  }) {
     return this.prisma.payment.create({
       data: {
         accountId: data.accountId,
         paidAt: data.paidAt,
         amount: data.amount,
+        bankAccount: data.bankAccount ?? null, // ✅ forma correta
       },
     });
   }

@@ -79,6 +79,7 @@ model Payment {
   paidAt    DateTime
   amount    Float?
   createdAt DateTime       @default(now())
+  bankAccount String?
 }
 
 // ========= MODELOS DE SUPORTE =========

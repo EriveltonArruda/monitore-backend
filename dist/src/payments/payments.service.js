@@ -29,6 +29,7 @@ let PaymentsService = class PaymentsService {
                 accountId: data.accountId,
                 paidAt: data.paidAt,
                 amount: data.amount,
+                bankAccount: data.bankAccount ?? null,
             },
         });
     }
