@@ -4,10 +4,10 @@ export declare class PaymentsService {
     constructor(prisma: PrismaService);
     findByAccountId(accountId: number): Promise<{
         id: number;
+        createdAt: Date;
         accountId: number;
         paidAt: Date;
         amount: number | null;
-        createdAt: Date;
         bankAccount: string | null;
     }[]>;
     create(data: {
@@ -17,10 +17,10 @@ export declare class PaymentsService {
         bankAccount?: string;
     }): Promise<{
         id: number;
+        createdAt: Date;
         accountId: number;
         paidAt: Date;
         amount: number | null;
-        createdAt: Date;
         bankAccount: string | null;
     }>;
 }
