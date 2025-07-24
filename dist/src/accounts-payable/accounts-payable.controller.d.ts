@@ -16,6 +16,9 @@ export declare class AccountsPayableController {
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        isRecurring: boolean;
+        recurringUntil: Date | null;
+        recurringSourceId: number | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
     findAll(page?: string, limit?: string, month?: string, year?: string): Promise<{
         data: ({
@@ -39,6 +42,9 @@ export declare class AccountsPayableController {
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
+            isRecurring: boolean;
+            recurringUntil: Date | null;
+            recurringSourceId: number | null;
         })[];
         total: number;
     }>;
@@ -54,6 +60,9 @@ export declare class AccountsPayableController {
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        isRecurring: boolean;
+        recurringUntil: Date | null;
+        recurringSourceId: number | null;
     }>;
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
@@ -67,6 +76,9 @@ export declare class AccountsPayableController {
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        isRecurring: boolean;
+        recurringUntil: Date | null;
+        recurringSourceId: number | null;
     }>;
     remove(id: number): Promise<{
         id: number;
@@ -80,5 +92,8 @@ export declare class AccountsPayableController {
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        isRecurring: boolean;
+        recurringUntil: Date | null;
+        recurringSourceId: number | null;
     }>;
 }

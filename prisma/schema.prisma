@@ -69,7 +69,14 @@ model AccountPayable {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  isRecurring        Boolean   @default(false)  // Indica se a conta se repete mensalmente
+  recurringUntil     DateTime?                  // Até quando deve repetir
+  recurringSourceId  Int?                       // ID da conta original (se for uma cópia gerada)
+  recurringSource     AccountPayable? @relation("RecurringLink", fields: [recurringSourceId], references: [id])
+  recurringChildren   AccountPayable[] @relation("RecurringLink")
+
   payments Payment[]
+  
 }
 
 model Payment {
