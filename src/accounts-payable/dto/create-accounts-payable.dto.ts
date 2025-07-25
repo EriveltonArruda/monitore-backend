@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsIn,
   IsInt,
+  IsBoolean,
 } from 'class-validator';
 
 const allowedStatus = ['A_PAGAR', 'PAGO', 'VENCIDO'];
@@ -43,4 +44,14 @@ export class CreateAccountsPayableDto {
   @IsInt()
   @IsOptional()
   currentInstallment?: number | null;
+
+  // ✅ Campo para marcar conta como recorrente
+  @IsBoolean()
+  @IsOptional()
+  isRecurring?: boolean;
+
+  // ✅ Data até a qual a conta deve se repetir mensalmente
+  @IsDateString()
+  @IsOptional()
+  recurringUntil?: Date;
 }

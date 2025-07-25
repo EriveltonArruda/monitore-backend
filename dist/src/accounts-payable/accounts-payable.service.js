@@ -17,8 +17,8 @@ let AccountsPayableService = class AccountsPayableService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    create(createAccountsPayableDto) {
-        const { installmentType, dueDate } = createAccountsPayableDto;
+    async create(createAccountsPayableDto) {
+        const { installmentType, dueDate, isRecurring, recurringUntil } = createAccountsPayableDto;
         if (installmentType === 'UNICA') {
             createAccountsPayableDto.installments = null;
             createAccountsPayableDto.currentInstallment = null;
@@ -28,9 +28,46 @@ let AccountsPayableService = class AccountsPayableService {
             parsed.setHours(0, 0, 0, 0);
             createAccountsPayableDto.dueDate = parsed;
         }
-        return this.prisma.accountPayable.create({
+        const originalAccount = await this.prisma.accountPayable.create({
             data: createAccountsPayableDto,
         });
+        if (isRecurring && recurringUntil) {
+            const startDate = new Date(createAccountsPayableDto.dueDate);
+            const endDate = new Date(recurringUntil);
+            endDate.setHours(0, 0, 0, 0);
+            const originalDay = startDate.getDate();
+            let currentYear = startDate.getFullYear();
+            let currentMonth = startDate.getMonth() + 1;
+            while (true) {
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                const adjustedDay = Math.min(originalDay, lastDayOfMonth);
+                const nextDueDate = new Date(currentYear, currentMonth, adjustedDay);
+                nextDueDate.setHours(0, 0, 0, 0);
+                if (nextDueDate > endDate)
+                    break;
+                await this.prisma.accountPayable.create({
+                    data: {
+                        name: originalAccount.name,
+                        category: originalAccount.category,
+                        value: originalAccount.value,
+                        dueDate: nextDueDate,
+                        status: 'A_PAGAR',
+                        installmentType: 'UNICA',
+                        installments: null,
+                        currentInstallment: null,
+                        isRecurring: false,
+                        recurringUntil: null,
+                        recurringSourceId: originalAccount.id,
+                    },
+                });
+                currentMonth++;
+            }
+        }
+        return originalAccount;
     }
     async findAll(params) {
         const { page, limit, month, year } = params;

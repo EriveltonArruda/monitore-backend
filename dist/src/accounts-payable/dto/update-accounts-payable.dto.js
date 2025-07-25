@@ -16,6 +16,8 @@ const class_validator_1 = require("class-validator");
 class UpdateAccountsPayableDto extends (0, mapped_types_1.PartialType)(create_accounts_payable_dto_1.CreateAccountsPayableDto) {
     installments;
     currentInstallment;
+    isRecurring;
+    recurringUntil;
 }
 exports.UpdateAccountsPayableDto = UpdateAccountsPayableDto;
 __decorate([
@@ -28,4 +30,14 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], UpdateAccountsPayableDto.prototype, "currentInstallment", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], UpdateAccountsPayableDto.prototype, "isRecurring", void 0);
+__decorate([
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Date)
+], UpdateAccountsPayableDto.prototype, "recurringUntil", void 0);
 //# sourceMappingURL=update-accounts-payable.dto.js.map

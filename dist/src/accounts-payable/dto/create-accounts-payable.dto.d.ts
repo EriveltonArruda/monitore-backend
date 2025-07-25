@@ -7,4 +7,6 @@ export declare class CreateAccountsPayableDto {
     installmentType?: string;
     installments?: number | null;
     currentInstallment?: number | null;
+    isRecurring?: boolean;
+    recurringUntil?: Date;
 }

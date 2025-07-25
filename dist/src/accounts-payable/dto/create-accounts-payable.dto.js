@@ -22,6 +22,8 @@ class CreateAccountsPayableDto {
     installmentType;
     installments;
     currentInstallment;
+    isRecurring;
+    recurringUntil;
 }
 exports.CreateAccountsPayableDto = CreateAccountsPayableDto;
 __decorate([
@@ -64,4 +66,14 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], CreateAccountsPayableDto.prototype, "currentInstallment", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateAccountsPayableDto.prototype, "isRecurring", void 0);
+__decorate([
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Date)
+], CreateAccountsPayableDto.prototype, "recurringUntil", void 0);
 //# sourceMappingURL=create-accounts-payable.dto.js.map
