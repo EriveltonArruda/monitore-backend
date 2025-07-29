@@ -25,13 +25,14 @@ let AccountsPayableController = class AccountsPayableController {
     create(createAccountsPayableDto) {
         return this.accountsPayableService.create(createAccountsPayableDto);
     }
-    findAll(page, limit, month, year, status) {
+    findAll(page, limit, month, year, status, category) {
         return this.accountsPayableService.findAll({
             page: page ? Number(page) : 1,
             limit: limit ? Number(limit) : 10,
             month: month ? Number(month) : undefined,
             year: year ? Number(year) : undefined,
             status: status && status !== 'TODOS' ? status : undefined,
+            category: category && category !== 'TODAS' ? category : undefined,
         });
     }
     findOne(id) {
@@ -59,8 +60,9 @@ __decorate([
     __param(2, (0, common_1.Query)('month')),
     __param(3, (0, common_1.Query)('year')),
     __param(4, (0, common_1.Query)('status')),
+    __param(5, (0, common_1.Query)('category')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findAll", null);
 __decorate([

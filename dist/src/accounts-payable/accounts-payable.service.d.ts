@@ -7,6 +7,7 @@ interface FindAllAccountsParams {
     month?: number;
     year?: number;
     status?: string;
+    category?: string;
 }
 export declare class AccountsPayableService {
     private prisma;

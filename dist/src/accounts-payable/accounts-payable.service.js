@@ -70,7 +70,7 @@ let AccountsPayableService = class AccountsPayableService {
         return originalAccount;
     }
     async findAll(params) {
-        const { page, limit, month, year, status } = params;
+        const { page, limit, month, year, status, category } = params;
         const skip = (page - 1) * limit;
         const where = {};
         if (month && year) {
@@ -84,6 +84,9 @@ let AccountsPayableService = class AccountsPayableService {
         }
         if (status && status !== 'TODOS') {
             where.status = status;
+        }
+        if (category && category !== 'TODAS') {
+            where.category = category;
         }
         const [accounts, total] = await this.prisma.$transaction([
             this.prisma.accountPayable.findMany({
