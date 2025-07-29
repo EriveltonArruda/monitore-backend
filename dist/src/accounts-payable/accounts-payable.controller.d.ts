@@ -49,6 +49,15 @@ export declare class AccountsPayableController {
         total: number;
     }>;
     findOne(id: number): Promise<{
+        payments: {
+            id: number;
+            createdAt: Date;
+            accountId: number;
+            paidAt: Date;
+            amount: number | null;
+            bankAccount: string | null;
+        }[];
+    } & {
         id: number;
         name: string;
         category: string;

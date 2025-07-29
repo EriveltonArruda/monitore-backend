@@ -102,6 +102,9 @@ let AccountsPayableService = class AccountsPayableService {
     async findOne(id) {
         const account = await this.prisma.accountPayable.findUnique({
             where: { id },
+            include: {
+                payments: true,
+            },
         });
         if (!account) {
             throw new common_1.NotFoundException(`Conta com ID #${id} não encontrada.`);
@@ -109,57 +112,109 @@ let AccountsPayableService = class AccountsPayableService {
         return account;
     }
     async update(id, updateAccountsPayableDto) {
-        const existingAccount = await this.findOne(id);
+        const existingAccount = await this.prisma.accountPayable.findUnique({
+            where: { id },
+            include: { payments: true },
+        });
+        if (!existingAccount) {
+            throw new common_1.NotFoundException(`Conta com ID #${id} não encontrada.`);
+        }
+        const prevStatus = existingAccount.status;
         const dataToUpdate = { ...updateAccountsPayableDto };
         if (updateAccountsPayableDto.dueDate) {
-            const parsed = new Date(updateAccountsPayableDto.dueDate);
-            parsed.setHours(0, 0, 0, 0);
-            dataToUpdate.dueDate = parsed;
+            const d = new Date(updateAccountsPayableDto.dueDate);
+            d.setHours(0, 0, 0, 0);
+            dataToUpdate.dueDate = d;
         }
-        const statusUpdatedToPaid = updateAccountsPayableDto.status === 'PAGO';
-        const updatedAccount = await this.prisma.accountPayable.update({
-            where: { id },
-            data: dataToUpdate,
-        });
-        if (statusUpdatedToPaid) {
-            const existingPayments = await this.prisma.payment.findMany({
+        const { paymentAmount, bankAccount, paidAt, ...accountFields } = dataToUpdate;
+        return await this.prisma.$transaction(async (prisma) => {
+            const updatedAccount = await prisma.accountPayable.update({
+                where: { id },
+                data: accountFields,
+            });
+            const paymentsSoFar = await prisma.payment.findMany({
                 where: { accountId: id },
             });
-            const totalPaid = existingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-            const remainingAmount = updatedAccount.value - totalPaid;
-            if (remainingAmount > 0) {
-                await this.prisma.payment.create({
+            let totalPaid = paymentsSoFar.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+            const paymentDate = paidAt
+                ? new Date(paidAt)
+                : new Date();
+            if (paymentAmount) {
+                const raw = typeof paymentAmount === 'string'
+                    ? paymentAmount.replace(',', '.')
+                    : String(paymentAmount);
+                const parsed = parseFloat(raw);
+                if (!isNaN(parsed) && parsed > 0) {
+                    const exists = await prisma.payment.findFirst({
+                        where: {
+                            accountId: id,
+                            amount: parsed,
+                            paidAt: paymentDate,
+                        },
+                    });
+                    if (!exists) {
+                        await prisma.payment.create({
+                            data: {
+                                accountId: id,
+                                paidAt: paymentDate,
+                                amount: parsed,
+                                bankAccount: bankAccount ?? null,
+                            },
+                        });
+                        totalPaid += parsed;
+                    }
+                }
+            }
+            else if (prevStatus !== 'PAGO' &&
+                updateAccountsPayableDto.status === 'PAGO') {
+                const remaining = updatedAccount.value - totalPaid;
+                if (remaining > 0) {
+                    const exists = await prisma.payment.findFirst({
+                        where: {
+                            accountId: id,
+                            amount: remaining,
+                        },
+                    });
+                    if (!exists) {
+                        await prisma.payment.create({
+                            data: {
+                                accountId: id,
+                                paidAt: paymentDate,
+                                amount: remaining,
+                                bankAccount: bankAccount ?? null,
+                            },
+                        });
+                        totalPaid += remaining;
+                    }
+                }
+            }
+            if (totalPaid >= updatedAccount.value && updatedAccount.status !== 'PAGO') {
+                await prisma.accountPayable.update({
+                    where: { id },
+                    data: { status: 'PAGO' },
+                });
+            }
+            if (existingAccount.installmentType === 'PARCELADO' &&
+                existingAccount.currentInstallment < existingAccount.installments &&
+                totalPaid >= updatedAccount.value) {
+                const nextDue = new Date(existingAccount.dueDate);
+                nextDue.setMonth(nextDue.getMonth() + 1);
+                nextDue.setHours(0, 0, 0, 0);
+                await prisma.accountPayable.create({
                     data: {
-                        accountId: id,
-                        paidAt: new Date(),
-                        amount: remainingAmount,
+                        name: existingAccount.name,
+                        category: existingAccount.category,
+                        value: existingAccount.value,
+                        dueDate: nextDue,
+                        status: 'A_PAGAR',
+                        installmentType: 'PARCELADO',
+                        installments: existingAccount.installments,
+                        currentInstallment: existingAccount.currentInstallment + 1,
                     },
                 });
             }
-        }
-        if (statusUpdatedToPaid &&
-            existingAccount.installmentType === 'PARCELADO' &&
-            existingAccount.currentInstallment &&
-            existingAccount.installments &&
-            existingAccount.currentInstallment < existingAccount.installments) {
-            const nextInstallment = existingAccount.currentInstallment + 1;
-            const currentDueDate = new Date(existingAccount.dueDate);
-            const nextDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 1));
-            nextDueDate.setHours(0, 0, 0, 0);
-            await this.prisma.accountPayable.create({
-                data: {
-                    name: existingAccount.name,
-                    category: existingAccount.category,
-                    value: existingAccount.value,
-                    dueDate: nextDueDate,
-                    status: 'A_PAGAR',
-                    installmentType: 'PARCELADO',
-                    installments: existingAccount.installments,
-                    currentInstallment: nextInstallment,
-                },
-            });
-        }
-        return updatedAccount;
+            return updatedAccount;
+        });
     }
     async remove(id) {
         await this.findOne(id);

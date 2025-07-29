@@ -5,5 +5,8 @@ export declare class UpdateAccountsPayableDto extends UpdateAccountsPayableDto_b
     currentInstallment?: number | null;
     isRecurring?: boolean;
     recurringUntil?: Date;
+    paymentAmount?: string | number;
+    bankAccount?: string;
+    paidAt?: Date;
 }
 export {};

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Query, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Query,
+  Param,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 
@@ -23,5 +33,27 @@ export class PaymentsController {
       amount: body.amount,
       bankAccount: body.bankAccount ?? undefined,
     });
+  }
+
+  @Patch(':id')
+  async updatePayment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      paidAt?: string;
+      amount?: number;
+      bankAccount?: string | null;
+    },
+  ) {
+    return this.paymentsService.update(id, {
+      paidAt: body.paidAt ? new Date(body.paidAt) : undefined,
+      amount: body.amount,
+      bankAccount: body.bankAccount ?? undefined,
+    });
+  }
+
+  @Delete(':id')
+  async removePayment(@Param('id', ParseIntPipe) id: number) {
+    return this.paymentsService.remove(id);
   }
 }

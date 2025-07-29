@@ -24,13 +24,48 @@ let PaymentsService = class PaymentsService {
         });
     }
     async create(data) {
+        const normalizedAmount = typeof data.amount === 'string'
+            ? parseFloat(data.amount.replace(',', '.'))
+            : data.amount;
+        if (isNaN(normalizedAmount) || normalizedAmount <= 0) {
+            throw new Error('Valor do pagamento inválido.');
+        }
+        const existing = await this.prisma.payment.findFirst({
+            where: {
+                accountId: data.accountId,
+                amount: normalizedAmount,
+                paidAt: data.paidAt,
+            },
+        });
+        if (existing) {
+            return existing;
+        }
         return this.prisma.payment.create({
             data: {
                 accountId: data.accountId,
                 paidAt: data.paidAt,
-                amount: data.amount,
+                amount: normalizedAmount,
                 bankAccount: data.bankAccount ?? null,
             },
+        });
+    }
+    async update(id, data) {
+        const existing = await this.prisma.payment.findUnique({ where: { id } });
+        if (!existing) {
+            throw new common_1.NotFoundException(`Pagamento com ID ${id} não encontrado`);
+        }
+        return this.prisma.payment.update({
+            where: { id },
+            data,
+        });
+    }
+    async remove(id) {
+        const existing = await this.prisma.payment.findUnique({ where: { id } });
+        if (!existing) {
+            throw new common_1.NotFoundException(`Pagamento com ID ${id} não encontrado`);
+        }
+        return this.prisma.payment.delete({
+            where: { id },
         });
     }
 };

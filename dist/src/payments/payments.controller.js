@@ -36,6 +36,16 @@ let PaymentsController = class PaymentsController {
             bankAccount: body.bankAccount ?? undefined,
         });
     }
+    async updatePayment(id, body) {
+        return this.paymentsService.update(id, {
+            paidAt: body.paidAt ? new Date(body.paidAt) : undefined,
+            amount: body.amount,
+            bankAccount: body.bankAccount ?? undefined,
+        });
+    }
+    async removePayment(id) {
+        return this.paymentsService.remove(id);
+    }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
@@ -52,6 +62,21 @@ __decorate([
     __metadata("design:paramtypes", [create_payment_dto_1.CreatePaymentDto]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "createPayment", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "updatePayment", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "removePayment", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentsService])

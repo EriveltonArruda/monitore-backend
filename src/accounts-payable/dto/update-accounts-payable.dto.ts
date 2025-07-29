@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsBoolean,
   IsDateString,
+  IsString,
+  IsNumberString
 } from 'class-validator';
 
 export class UpdateAccountsPayableDto extends PartialType(CreateAccountsPayableDto) {
@@ -26,4 +28,10 @@ export class UpdateAccountsPayableDto extends PartialType(CreateAccountsPayableD
   @IsDateString()
   @IsOptional()
   recurringUntil?: Date;
+
+  @IsOptional()
+  @IsNumberString()
+  paymentAmount?: string | number;
+  bankAccount?: string;
+  paidAt?: Date;
 }
