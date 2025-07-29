@@ -7,16 +7,16 @@ export declare class PaymentsController {
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }[]>;
     createPayment(body: CreatePaymentDto): Promise<{
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
     updatePayment(id: number, body: {
@@ -27,16 +27,16 @@ export declare class PaymentsController {
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
     removePayment(id: number): Promise<{
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
 }

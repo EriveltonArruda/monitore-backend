@@ -9,6 +9,7 @@ interface FindAllAccountsParams {
   limit: number;
   month?: number;
   year?: number;
+  status?: string; // Novo campo para filtro de status
 }
 
 @Injectable()
@@ -80,7 +81,7 @@ export class AccountsPayableService {
   }
 
   async findAll(params: FindAllAccountsParams) {
-    const { page, limit, month, year } = params;
+    const { page, limit, month, year, status } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AccountPayableWhereInput = {};
@@ -94,6 +95,11 @@ export class AccountsPayableService {
         gte: startDate,
         lte: endDate,
       };
+    }
+
+    // Filtro por status (exceto "TODOS")
+    if (status && status !== 'TODOS') {
+      where.status = status;
     }
 
     const [accounts, total] = await this.prisma.$transaction([
@@ -130,13 +136,10 @@ export class AccountsPayableService {
     return account;
   }
 
-  // src/accounts-payable/accounts-payable.service.ts
-
   async update(
     id: number,
     updateAccountsPayableDto: UpdateAccountsPayableDto
   ) {
-    // 1) Busca o estado atual da conta (incluindo pagamentos)
     const existingAccount = await this.prisma.accountPayable.findUnique({
       where: { id },
       include: { payments: true },
@@ -146,7 +149,6 @@ export class AccountsPayableService {
     }
     const prevStatus = existingAccount.status;
 
-    // 2) Ajusta dueDate se vier no DTO
     const dataToUpdate: any = { ...updateAccountsPayableDto };
     if (updateAccountsPayableDto.dueDate) {
       const d = new Date(updateAccountsPayableDto.dueDate);
@@ -154,7 +156,6 @@ export class AccountsPayableService {
       dataToUpdate.dueDate = d;
     }
 
-    // 3) Extrai os campos de pagamento para processá‐los depois
     const {
       paymentAmount, // string ou number vindo do front
       bankAccount,
@@ -162,33 +163,27 @@ export class AccountsPayableService {
       ...accountFields
     } = dataToUpdate;
 
-    // 4) Executa tudo em transação para manter consistência
     return await this.prisma.$transaction(async (prisma) => {
-      // 4.1) Atualiza a conta com os dados principais
       const updatedAccount = await prisma.accountPayable.update({
         where: { id },
         data: accountFields,
       });
 
-      // 4.2) Recalcula total pago até agora
       const paymentsSoFar = await prisma.payment.findMany({
         where: { accountId: id },
       });
       let totalPaid = paymentsSoFar.reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
-      // 4.3) Define a data de pagamento (manual ou agora)
       const paymentDate = paidAt
         ? new Date(paidAt)
         : new Date();
 
-      // 4.4) Se veio paymentAmount, crie **apenas** esse pagamento manual
       if (paymentAmount) {
         const raw = typeof paymentAmount === 'string'
           ? paymentAmount.replace(',', '.')
           : String(paymentAmount);
         const parsed = parseFloat(raw);
         if (!isNaN(parsed) && parsed > 0) {
-          // evita duplicata exata
           const exists = await prisma.payment.findFirst({
             where: {
               accountId: id,
@@ -209,15 +204,12 @@ export class AccountsPayableService {
           }
         }
       }
-      // 4.5) Caso não seja pagamento manual e o status tenha mudado para PAGO,
-      //      gera pagamento automático de toda a fatura restante
       else if (
         prevStatus !== 'PAGO' &&
         updateAccountsPayableDto.status === 'PAGO'
       ) {
         const remaining = updatedAccount.value - totalPaid;
         if (remaining > 0) {
-          // evita duplicata exata
           const exists = await prisma.payment.findFirst({
             where: {
               accountId: id,
@@ -238,7 +230,6 @@ export class AccountsPayableService {
         }
       }
 
-      // 4.6) Ajusta status final se totalPaid cobrir a fatura
       if (totalPaid >= updatedAccount.value && updatedAccount.status !== 'PAGO') {
         await prisma.accountPayable.update({
           where: { id },
@@ -246,7 +237,6 @@ export class AccountsPayableService {
         });
       }
 
-      // 4.7) Se for parcelado e acabou de quitar a parcela atual, gera a próxima
       if (
         existingAccount.installmentType === 'PARCELADO' &&
         existingAccount.currentInstallment! < existingAccount.installments! &&
@@ -270,11 +260,9 @@ export class AccountsPayableService {
         });
       }
 
-      // 5) Retorna o estado final da conta
       return updatedAccount;
     });
   }
-
 
   async remove(id: number) {
     await this.findOne(id);

@@ -6,8 +6,8 @@ export declare class PaymentsService {
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }[]>;
     create(data: {
@@ -19,8 +19,8 @@ export declare class PaymentsService {
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
     update(id: number, data: {
@@ -31,16 +31,16 @@ export declare class PaymentsService {
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
     remove(id: number): Promise<{
         id: number;
         createdAt: Date;
         bankAccount: string | null;
-        accountId: number;
         paidAt: Date;
+        accountId: number;
         amount: number | null;
     }>;
 }
