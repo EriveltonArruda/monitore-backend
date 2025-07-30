@@ -8,7 +8,7 @@ export declare class CategoriesController {
         id: number;
         name: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(page?: string, limit?: string): Promise<{
+    findAll(page?: string, limit?: string, search?: string): Promise<{
         data: {
             id: number;
             name: string;

@@ -11,18 +11,24 @@ export class CategoriesService {
     return this.prisma.category.create({ data: createCategoryDto });
   }
 
-  // O método agora é 'async' e retorna um objeto paginado
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  // AGORA ACEITA O PARAM 'search' OPCIONAL
+  async findAll(params: { page: number, limit: number, search?: string }) {
+    const { page, limit, search } = params;
     const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search };
+    }
 
     const [categories, total] = await this.prisma.$transaction([
       this.prisma.category.findMany({
+        where,                   // agora filtra por nome!
         orderBy: { name: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.category.count(),
+      this.prisma.category.count({ where }),
     ]);
 
     return {

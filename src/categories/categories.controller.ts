@@ -12,19 +12,20 @@ export class CategoriesController {
     return this.categoriesService.create(createCategoryDto);
   }
 
-  // O método agora aceita 'page' e 'limit'
+  // Agora aceita search!
   @Get()
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string, // <-- adicionado aqui
   ) {
     return this.categoriesService.findAll({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 10,
+      search, // <-- repassado aqui
     });
   }
 
-  // NOVO ENDPOINT: Busca TODAS as categorias, sem paginação
   @Get('all')
   findAllUnpaginated() {
     return this.categoriesService.findAllUnpaginated();

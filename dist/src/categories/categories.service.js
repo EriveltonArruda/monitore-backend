@@ -21,15 +21,20 @@ let CategoriesService = class CategoriesService {
         return this.prisma.category.create({ data: createCategoryDto });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, search } = params;
         const skip = (page - 1) * limit;
+        const where = {};
+        if (search) {
+            where.name = { contains: search };
+        }
         const [categories, total] = await this.prisma.$transaction([
             this.prisma.category.findMany({
+                where,
                 orderBy: { name: 'asc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.category.count(),
+            this.prisma.category.count({ where }),
         ]);
         return {
             data: categories,

@@ -11,6 +11,7 @@ export declare class CategoriesService {
     findAll(params: {
         page: number;
         limit: number;
+        search?: string;
     }): Promise<{
         data: {
             id: number;
