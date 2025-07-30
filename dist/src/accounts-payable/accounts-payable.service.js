@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AccountsPayableService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const date_fns_1 = require("date-fns");
 let AccountsPayableService = class AccountsPayableService {
     prisma;
     constructor(prisma) {
@@ -121,6 +122,58 @@ let AccountsPayableService = class AccountsPayableService {
             throw new common_1.NotFoundException(`Conta com ID #${id} não encontrada.`);
         }
         return account;
+    }
+    async getMonthlyReport(year, category, status, page = 1, limit = 12) {
+        const where = {};
+        if (year) {
+            where.dueDate = {
+                gte: new Date(`${year}-01-01T00:00:00.000Z`),
+                lte: new Date(`${year}-12-31T23:59:59.999Z`),
+            };
+        }
+        if (category && category !== 'TODAS') {
+            where.category = category;
+        }
+        if (status && status !== 'TODOS') {
+            where.status = status;
+        }
+        const accounts = await this.prisma.accountPayable.findMany({
+            where,
+            include: { payments: true },
+            orderBy: { dueDate: 'asc' },
+        });
+        const monthsMap = new Map();
+        accounts.forEach(account => {
+            const month = (0, date_fns_1.format)(new Date(account.dueDate), 'yyyy-MM');
+            if (!monthsMap.has(month)) {
+                monthsMap.set(month, {
+                    month,
+                    total: 0,
+                    paid: 0,
+                    pending: 0,
+                    count: 0,
+                });
+            }
+            const data = monthsMap.get(month);
+            data.total += Number(account.value);
+            data.count += 1;
+            const paidSum = account.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+            data.paid += paidSum;
+            data.pending += Math.max(Number(account.value) - paidSum, 0);
+            monthsMap.set(month, data);
+        });
+        const allMonths = Array.from(monthsMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+        const total = allMonths.length;
+        const totalPages = Math.ceil(total / limit);
+        const currentPage = Number(page) || 1;
+        const start = (currentPage - 1) * limit;
+        const paginatedData = allMonths.slice(start, start + limit);
+        return {
+            data: paginatedData,
+            total,
+            totalPages,
+            currentPage,
+        };
     }
     async update(id, updateAccountsPayableDto) {
         const existingAccount = await this.prisma.accountPayable.findUnique({

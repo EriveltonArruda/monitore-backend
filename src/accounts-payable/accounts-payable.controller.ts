@@ -48,6 +48,23 @@ export class AccountsPayableController {
     return this.accountsPayableService.findOne(id);
   }
 
+  @Get('reports/month')
+  async getMonthlyReport(
+    @Query('year') year?: string,
+    @Query('category') category?: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.accountsPayableService.getMonthlyReport(
+      year,
+      category,
+      status,
+      Number(page) || 1,
+      Number(limit) || 12
+    );
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

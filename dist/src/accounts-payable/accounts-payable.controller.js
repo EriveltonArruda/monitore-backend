@@ -39,6 +39,9 @@ let AccountsPayableController = class AccountsPayableController {
     findOne(id) {
         return this.accountsPayableService.findOne(id);
     }
+    async getMonthlyReport(year, category, status, page, limit) {
+        return this.accountsPayableService.getMonthlyReport(year, category, status, Number(page) || 1, Number(limit) || 12);
+    }
     update(id, updateAccountsPayableDto) {
         return this.accountsPayableService.update(id, updateAccountsPayableDto);
     }
@@ -74,6 +77,17 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)('reports/month'),
+    __param(0, (0, common_1.Query)('year')),
+    __param(1, (0, common_1.Query)('category')),
+    __param(2, (0, common_1.Query)('status')),
+    __param(3, (0, common_1.Query)('page')),
+    __param(4, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AccountsPayableController.prototype, "getMonthlyReport", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

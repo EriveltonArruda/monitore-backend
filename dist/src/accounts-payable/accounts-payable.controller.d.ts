@@ -73,6 +73,12 @@ export declare class AccountsPayableController {
         recurringUntil: Date | null;
         recurringSourceId: number | null;
     }>;
+    getMonthlyReport(year?: string, category?: string, status?: string, page?: string, limit?: string): Promise<{
+        data: any[];
+        total: number;
+        totalPages: number;
+        currentPage: number;
+    }>;
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;

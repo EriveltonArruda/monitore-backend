@@ -3,6 +3,7 @@ import { CreateAccountsPayableDto } from './dto/create-accounts-payable.dto';
 import { UpdateAccountsPayableDto } from './dto/update-accounts-payable.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { addMonths, startOfMonth, endOfMonth, format } from 'date-fns';
 
 interface FindAllAccountsParams {
   page: number;
@@ -147,6 +148,83 @@ export class AccountsPayableService {
     }
 
     return account;
+  }
+
+  async getMonthlyReport(
+    year?: string,
+    category?: string,
+    status?: string,
+    page = 1,
+    limit = 12
+  ) {
+    // Filtro opcional de ano
+    const where: Prisma.AccountPayableWhereInput = {};
+    if (year) {
+      where.dueDate = {
+        gte: new Date(`${year}-01-01T00:00:00.000Z`),
+        lte: new Date(`${year}-12-31T23:59:59.999Z`),
+      };
+    }
+    if (category && category !== 'TODAS') {
+      where.category = category;
+    }
+    if (status && status !== 'TODOS') {
+      where.status = status;
+    }
+
+    // Busca os registros já filtrando se necessário
+    const accounts = await this.prisma.accountPayable.findMany({
+      where,
+      include: { payments: true },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    // Agrupa por mês
+    const monthsMap = new Map<string, any>();
+
+    accounts.forEach(account => {
+      const month = format(new Date(account.dueDate), 'yyyy-MM');
+      if (!monthsMap.has(month)) {
+        monthsMap.set(month, {
+          month,
+          total: 0,
+          paid: 0,
+          pending: 0,
+          count: 0,
+        });
+      }
+      const data = monthsMap.get(month);
+
+      data.total += Number(account.value);
+      data.count += 1;
+
+      // Verifica o quanto foi pago
+      const paidSum = account.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      data.paid += paidSum;
+
+      // Pendente = valor da conta - o que já foi pago
+      data.pending += Math.max(Number(account.value) - paidSum, 0);
+
+      monthsMap.set(month, data);
+    });
+
+    // Transforma o Map em array ordenado
+    const allMonths = Array.from(monthsMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+
+    // Bloco de paginação:
+    const total = allMonths.length;
+    const totalPages = Math.ceil(total / limit);
+    const currentPage = Number(page) || 1;
+    const start = (currentPage - 1) * limit;
+    const paginatedData = allMonths.slice(start, start + limit);
+
+    // Retorna no formato esperado pelo frontend
+    return {
+      data: paginatedData,
+      total,
+      totalPages,
+      currentPage,
+    };
   }
 
   async update(
