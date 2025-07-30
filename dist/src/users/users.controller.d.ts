@@ -9,7 +9,7 @@ export declare class UsersController {
         email: string;
         name: string;
     }>;
-    findAll(page?: string, limit?: string): Promise<{
+    findAll(page?: string, limit?: string, search?: string): Promise<{
         data: {
             id: number;
             email: string;

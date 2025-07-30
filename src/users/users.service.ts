@@ -19,19 +19,28 @@ export class UsersService {
     });
   }
 
-  // Busca todos os usuários de forma paginada.
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: { page: number, limit: number, search?: string }) {
+    const { page, limit, search } = params;
     const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+      // Filtra por nome OU email (sensível a SQLite, tire o 'mode' se der erro)
+      where.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } }
+      ];
+    }
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         select: { id: true, name: true, email: true, createdAt: true, updatedAt: true },
+        where,
         orderBy: { name: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
 
     return { data: users, total };

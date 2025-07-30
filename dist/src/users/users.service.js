@@ -26,16 +26,24 @@ let UsersService = class UsersService {
         });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, search } = params;
         const skip = (page - 1) * limit;
+        const where = {};
+        if (search) {
+            where.OR = [
+                { name: { contains: search } },
+                { email: { contains: search } }
+            ];
+        }
         const [users, total] = await this.prisma.$transaction([
             this.prisma.user.findMany({
                 select: { id: true, name: true, email: true, createdAt: true, updatedAt: true },
+                where,
                 orderBy: { name: 'asc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.user.count(),
+            this.prisma.user.count({ where }),
         ]);
         return { data: users, total };
     }

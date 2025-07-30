@@ -12,6 +12,7 @@ export declare class UsersService {
     findAll(params: {
         page: number;
         limit: number;
+        search?: string;
     }): Promise<{
         data: {
             id: number;
