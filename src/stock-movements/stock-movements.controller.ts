@@ -15,10 +15,18 @@ export class StockMovementsController {
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('type') type?: string,
+    @Query('productId') productId?: string,
+    @Query('period') period?: string
   ) {
     return this.stockMovementsService.findAll({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 10,
+      search,
+      type,
+      productId: productId ? Number(productId) : undefined,
+      period,
     });
   }
 

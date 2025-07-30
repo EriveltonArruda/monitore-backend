@@ -54,25 +54,49 @@ let StockMovementsService = class StockMovementsService {
         });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, search, type, productId, period } = params;
         const skip = (page - 1) * limit;
+        let where = {};
+        if (search) {
+            where.OR = [
+                { details: { contains: search, mode: 'insensitive' } },
+                { notes: { contains: search, mode: 'insensitive' } },
+                { product: { is: { name: { contains: search, mode: 'insensitive' } } } }
+            ];
+        }
+        if (type) {
+            where.type = type;
+        }
+        if (productId) {
+            where.productId = productId;
+        }
+        if (period) {
+            const now = new Date();
+            let startDate = null;
+            if (period === 'today') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            }
+            else if (period === 'last7') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+            }
+            else if (period === 'last30') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+            }
+            if (startDate) {
+                where.createdAt = { gte: startDate };
+            }
+        }
         const [movements, total] = await this.prisma.$transaction([
             this.prisma.stockMovement.findMany({
-                include: {
-                    product: true,
-                },
-                orderBy: {
-                    createdAt: 'desc',
-                },
+                where,
+                include: { product: true },
+                orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.stockMovement.count(),
+            this.prisma.stockMovement.count({ where }),
         ]);
-        return {
-            data: movements,
-            total,
-        };
+        return { data: movements, total };
     }
     async remove(id) {
         const movement = await this.prisma.stockMovement.findUnique({ where: { id } });

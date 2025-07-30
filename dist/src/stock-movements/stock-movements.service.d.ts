@@ -19,6 +19,10 @@ export declare class StockMovementsService {
     findAll(params: {
         page: number;
         limit: number;
+        search?: string;
+        type?: string;
+        productId?: number;
+        period?: string;
     }): Promise<{
         data: ({
             product: {

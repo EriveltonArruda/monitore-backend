@@ -16,7 +16,7 @@ export declare class StockMovementsController {
         productId: number;
         userId: number;
     }>;
-    findAll(page?: string, limit?: string): Promise<{
+    findAll(page?: string, limit?: string, search?: string, type?: string, productId?: string, period?: string): Promise<{
         data: ({
             product: {
                 id: number;

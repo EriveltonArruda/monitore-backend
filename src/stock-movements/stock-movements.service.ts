@@ -51,28 +51,66 @@ export class StockMovementsService {
     });
   }
 
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: {
+    page: number,
+    limit: number,
+    search?: string,
+    type?: string,
+    productId?: number,
+    period?: string
+  }) {
+    const { page, limit, search, type, productId, period } = params;
     const skip = (page - 1) * limit;
+
+    let where: any = {};
+
+    // Filtro de busca
+    if (search) {
+      where.OR = [
+        { details: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+        { product: { is: { name: { contains: search, mode: 'insensitive' } } } }
+      ];
+    }
+
+    // Filtro por tipo de movimentação
+    if (type) {
+      where.type = type;
+    }
+
+    // Filtro por produto
+    if (productId) {
+      where.productId = productId;
+    }
+
+    // Filtro por período
+    if (period) {
+      const now = new Date();
+      let startDate: Date | null = null;
+      if (period === 'today') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // meia-noite de hoje
+      } else if (period === 'last7') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); // últimos 7 dias
+      } else if (period === 'last30') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29); // últimos 30 dias
+      }
+      if (startDate) {
+        where.createdAt = { gte: startDate };
+      }
+    }
 
     const [movements, total] = await this.prisma.$transaction([
       this.prisma.stockMovement.findMany({
-        include: {
-          product: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        where,
+        include: { product: true },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.stockMovement.count(),
+      this.prisma.stockMovement.count({ where }),
     ]);
 
-    return {
-      data: movements,
-      total,
-    };
+    return { data: movements, total };
   }
 
   async remove(id: number) {

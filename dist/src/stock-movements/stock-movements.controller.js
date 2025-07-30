@@ -24,10 +24,14 @@ let StockMovementsController = class StockMovementsController {
     create(createStockMovementDto) {
         return this.stockMovementsService.create(createStockMovementDto);
     }
-    findAll(page, limit) {
+    findAll(page, limit, search, type, productId, period) {
         return this.stockMovementsService.findAll({
             page: page ? Number(page) : 1,
             limit: limit ? Number(limit) : 10,
+            search,
+            type,
+            productId: productId ? Number(productId) : undefined,
+            period,
         });
     }
     remove(id) {
@@ -46,8 +50,12 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('type')),
+    __param(4, (0, common_1.Query)('productId')),
+    __param(5, (0, common_1.Query)('period')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], StockMovementsController.prototype, "findAll", null);
 __decorate([
