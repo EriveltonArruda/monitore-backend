@@ -74,4 +74,15 @@ export class StockMovementsService {
       total,
     };
   }
+
+  async remove(id: number) {
+    // Busca a movimentação antes de tentar excluir
+    const movement = await this.prisma.stockMovement.findUnique({ where: { id } });
+    if (!movement) {
+      throw new NotFoundException(`Movimentação com ID #${id} não encontrada.`);
+    }
+
+    // Exclui a movimentação
+    return this.prisma.stockMovement.delete({ where: { id } });
+  }
 }

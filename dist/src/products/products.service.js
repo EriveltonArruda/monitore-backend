@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const common_2 = require("@nestjs/common");
 let ProductsService = class ProductsService {
     prisma;
     constructor(prisma) {
@@ -106,9 +107,19 @@ let ProductsService = class ProductsService {
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.product.delete({
-            where: { id },
-        });
+        try {
+            return await this.prisma.product.delete({
+                where: { id },
+            });
+        }
+        catch (error) {
+            console.error(error);
+            if (error.code === 'P2003' ||
+                error.code === 'P2014') {
+                throw new common_2.BadRequestException('Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.');
+            }
+            throw error;
+        }
     }
 };
 exports.ProductsService = ProductsService;

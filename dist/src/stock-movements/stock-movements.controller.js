@@ -30,6 +30,9 @@ let StockMovementsController = class StockMovementsController {
             limit: limit ? Number(limit) : 10,
         });
     }
+    remove(id) {
+        return this.stockMovementsService.remove(id);
+    }
 };
 exports.StockMovementsController = StockMovementsController;
 __decorate([
@@ -47,6 +50,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], StockMovementsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], StockMovementsController.prototype, "remove", null);
 exports.StockMovementsController = StockMovementsController = __decorate([
     (0, common_1.Controller)('stock-movements'),
     __metadata("design:paramtypes", [stock_movements_service_1.StockMovementsService])

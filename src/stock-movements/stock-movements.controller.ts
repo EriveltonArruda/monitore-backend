@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Delete, ParseIntPipe } from '@nestjs/common';
 import { StockMovementsService } from './stock-movements.service';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 
@@ -20,5 +20,10 @@ export class StockMovementsController {
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 10,
     });
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.stockMovementsService.remove(id);
   }
 }

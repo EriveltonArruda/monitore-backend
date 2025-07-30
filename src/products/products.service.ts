@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { BadRequestException } from '@nestjs/common';
 
 // A interface de parâmetros agora inclui 'page' e 'limit'
 interface FindAllProductsParams {
@@ -124,8 +125,23 @@ export class ProductsService {
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.product.delete({
-      where: { id },
-    });
+    try {
+      return await this.prisma.product.delete({
+        where: { id },
+      });
+    } catch (error) {
+      console.error(error)
+      // Se for erro de constraint do Prisma (produto vinculado em outra tabela)
+      if (
+        error.code === 'P2003' || // Foreign key constraint failed on the field
+        error.code === 'P2014'    // Tried to delete a record with child records
+      ) {
+        throw new BadRequestException(
+          'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.'
+        );
+      }
+      // Se não for um erro tratado, lance o erro original
+      throw error;
+    }
   }
 }
