@@ -25,10 +25,11 @@ let SuppliersController = class SuppliersController {
     create(createSupplierDto) {
         return this.suppliersService.create(createSupplierDto);
     }
-    findAll(page, limit) {
+    findAll(page, limit, search) {
         return this.suppliersService.findAll({
             page: page ? Number(page) : 1,
             limit: limit ? Number(limit) : 10,
+            search,
         });
     }
     findAllUnpaginated() {
@@ -56,8 +57,9 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], SuppliersController.prototype, "findAll", null);
 __decorate([

@@ -18,10 +18,12 @@ export class SuppliersController {
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
     return this.suppliersService.findAll({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 10,
+      search,
     });
   }
 

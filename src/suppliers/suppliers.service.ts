@@ -12,23 +12,28 @@ export class SuppliersService {
   }
 
   // O método agora é 'async' e retorna um objeto paginado
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: { page: number, limit: number, search?: string }) {
+    const { page, limit, search } = params;
     const skip = (page - 1) * limit;
+
+    // Ajuste para SQLite: NÃO use mode: 'insensitive'
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search }; // Para SQLite
+      // Para Postgres: { contains: search, mode: 'insensitive' }
+    }
 
     const [suppliers, total] = await this.prisma.$transaction([
       this.prisma.supplier.findMany({
+        where,
         orderBy: { name: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.supplier.count(),
+      this.prisma.supplier.count({ where }),
     ]);
 
-    return {
-      data: suppliers,
-      total,
-    };
+    return { data: suppliers, total };
   }
 
   // NOVO MÉTODO: Retorna todos os fornecedores

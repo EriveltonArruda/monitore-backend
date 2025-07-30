@@ -21,20 +21,22 @@ let SuppliersService = class SuppliersService {
         return this.prisma.supplier.create({ data: createSupplierDto });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, search } = params;
         const skip = (page - 1) * limit;
+        const where = {};
+        if (search) {
+            where.name = { contains: search };
+        }
         const [suppliers, total] = await this.prisma.$transaction([
             this.prisma.supplier.findMany({
+                where,
                 orderBy: { name: 'asc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.supplier.count(),
+            this.prisma.supplier.count({ where }),
         ]);
-        return {
-            data: suppliers,
-            total,
-        };
+        return { data: suppliers, total };
     }
     findAllUnpaginated() {
         return this.prisma.supplier.findMany({
