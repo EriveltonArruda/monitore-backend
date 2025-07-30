@@ -6,55 +6,55 @@ export declare class ContactsController {
     constructor(contactsService: ContactsService);
     create(createContactDto: CreateContactDto): import(".prisma/client").Prisma.Prisma__ContactClient<{
         id: number;
-        email: string | null;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
+        company: string | null;
+        email: string | null;
         phone: string | null;
         type: string;
-        company: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(page?: string, limit?: string): Promise<{
+    findAll(page?: string, limit?: string, search?: string): Promise<{
         data: {
             id: number;
-            email: string | null;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
+            company: string | null;
+            email: string | null;
             phone: string | null;
             type: string;
-            company: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         }[];
         total: number;
     }>;
     findOne(id: number): Promise<{
         id: number;
-        email: string | null;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
+        company: string | null;
+        email: string | null;
         phone: string | null;
         type: string;
-        company: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     update(id: number, updateContactDto: UpdateContactDto): Promise<{
         id: number;
-        email: string | null;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
+        company: string | null;
+        email: string | null;
         phone: string | null;
         type: string;
-        company: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     remove(id: number): Promise<{
         id: number;
-        email: string | null;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
+        company: string | null;
+        email: string | null;
         phone: string | null;
         type: string;
-        company: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
 }

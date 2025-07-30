@@ -25,10 +25,11 @@ let ContactsController = class ContactsController {
     create(createContactDto) {
         return this.contactsService.create(createContactDto);
     }
-    findAll(page, limit) {
+    findAll(page, limit, search) {
         return this.contactsService.findAll({
             page: page ? Number(page) : 1,
             limit: limit ? Number(limit) : 10,
+            search,
         });
     }
     findOne(id) {
@@ -53,8 +54,9 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], ContactsController.prototype, "findAll", null);
 __decorate([

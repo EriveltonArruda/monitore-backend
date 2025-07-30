@@ -21,15 +21,25 @@ let ContactsService = class ContactsService {
         return this.prisma.contact.create({ data: createContactDto });
     }
     async findAll(params) {
-        const { page, limit } = params;
+        const { page, limit, search } = params;
         const skip = (page - 1) * limit;
+        const where = {};
+        if (search) {
+            where.OR = [
+                { name: { contains: search } },
+                { company: { contains: search } },
+                { email: { contains: search } },
+                { phone: { contains: search } },
+            ];
+        }
         const [contacts, total] = await this.prisma.$transaction([
             this.prisma.contact.findMany({
+                where,
                 orderBy: { name: 'asc' },
                 skip,
                 take: limit,
             }),
-            this.prisma.contact.count(),
+            this.prisma.contact.count({ where }),
         ]);
         return {
             data: contacts,

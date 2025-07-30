@@ -11,18 +11,29 @@ export class ContactsService {
     return this.prisma.contact.create({ data: createContactDto });
   }
 
-  // O método agora é 'async' e retorna um objeto paginado
-  async findAll(params: { page: number, limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: { page: number, limit: number, search?: string }) {
+    const { page, limit, search } = params;
     const skip = (page - 1) * limit;
+
+    // Filtro por nome OU empresa OU email, se quiser expandir a busca
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { company: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+      ];
+    }
 
     const [contacts, total] = await this.prisma.$transaction([
       this.prisma.contact.findMany({
+        where,
         orderBy: { name: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.contact.count(),
+      this.prisma.contact.count({ where }),
     ]);
 
     return {
