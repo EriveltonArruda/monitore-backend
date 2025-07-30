@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,6 +23,14 @@ let ReportsController = class ReportsController {
     getGeneralReport() {
         return this.reportsService.getGeneralReport();
     }
+    getAccountsPayableMonthlyReport(year, category, page, limit) {
+        return this.reportsService.getAccountsPayableMonthlyReport({
+            year: year ? Number(year) : new Date().getFullYear(),
+            category,
+            page: page ? Number(page) : 1,
+            limit: limit ? Number(limit) : 12,
+        });
+    }
 };
 exports.ReportsController = ReportsController;
 __decorate([
@@ -28,6 +39,16 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ReportsController.prototype, "getGeneralReport", null);
+__decorate([
+    (0, common_1.Get)('accounts-payable/month'),
+    __param(0, (0, common_1.Query)('year')),
+    __param(1, (0, common_1.Query)('category')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", void 0)
+], ReportsController.prototype, "getAccountsPayableMonthlyReport", null);
 exports.ReportsController = ReportsController = __decorate([
     (0, common_1.Controller)('reports'),
     __metadata("design:paramtypes", [reports_service_1.ReportsService])

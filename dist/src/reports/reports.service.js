@@ -90,6 +90,60 @@ let ReportsService = class ReportsService {
             movementsLast7Days: movementsLast7DaysData,
         };
     }
+    async getAccountsPayableMonthlyReport(params) {
+        const { year, category = "TODAS", page = 1, limit = 12 } = params;
+        let where = {
+            dueDate: {
+                gte: new Date(`${year}-01-01T00:00:00.000Z`),
+                lte: new Date(`${year}-12-31T23:59:59.999Z`),
+            },
+        };
+        if (category && category !== "TODAS") {
+            where.category = { equals: category };
+        }
+        const accounts = await this.prisma.accountPayable.findMany({
+            where,
+            select: {
+                id: true,
+                value: true,
+                status: true,
+                dueDate: true,
+            },
+        });
+        const grouped = {};
+        for (const account of accounts) {
+            const due = new Date(account.dueDate);
+            const key = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}`;
+            if (!grouped[key]) {
+                grouped[key] = { total: 0, paid: 0, pending: 0, count: 0 };
+            }
+            grouped[key].total += Number(account.value);
+            grouped[key].count += 1;
+            if (account.status === 'PAGO') {
+                grouped[key].paid += Number(account.value);
+            }
+            else {
+                grouped[key].pending += Number(account.value);
+            }
+        }
+        const allMonths = Object.keys(grouped).sort();
+        const total = allMonths.length;
+        const totalPages = Math.ceil(total / limit);
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const pagedMonths = allMonths.slice(start, end);
+        const data = pagedMonths.map(month => ({
+            month,
+            ...grouped[month]
+        }));
+        return {
+            data,
+            total,
+            totalPages,
+            page,
+            limit,
+        };
+    }
 };
 exports.ReportsService = ReportsService;
 exports.ReportsService = ReportsService = __decorate([

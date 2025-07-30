@@ -22,4 +22,22 @@ export declare class ReportsService {
             count: number;
         }[];
     }>;
+    getAccountsPayableMonthlyReport(params: {
+        year: number;
+        category?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{
+        data: {
+            total: number;
+            paid: number;
+            pending: number;
+            count: number;
+            month: string;
+        }[];
+        total: number;
+        totalPages: number;
+        page: number;
+        limit: number;
+    }>;
 }
