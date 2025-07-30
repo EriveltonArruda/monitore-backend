@@ -20,7 +20,7 @@ export declare class AccountsPayableController {
         recurringUntil: Date | null;
         recurringSourceId: number | null;
     }>;
-    findAll(page?: string, limit?: string, month?: string, year?: string, status?: string, category?: string): Promise<{
+    findAll(page?: string, limit?: string, month?: string, year?: string, status?: string, category?: string, search?: string): Promise<{
         data: ({
             payments: {
                 id: number;

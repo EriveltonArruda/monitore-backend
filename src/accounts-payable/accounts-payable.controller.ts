@@ -30,6 +30,7 @@ export class AccountsPayableController {
     @Query('year') year?: string,
     @Query('status') status?: string,
     @Query('category') category?: string,
+    @Query('search') search?: string,
   ) {
     return this.accountsPayableService.findAll({
       page: page ? Number(page) : 1,
@@ -38,6 +39,7 @@ export class AccountsPayableController {
       year: year ? Number(year) : undefined,
       status: status && status !== 'TODOS' ? status : undefined, // <-- Adiciona só se diferente de TODOS
       category: category && category !== 'TODAS' ? category : undefined,
+      search: search || '',
     });
   }
 

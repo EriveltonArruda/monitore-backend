@@ -11,6 +11,7 @@ interface FindAllAccountsParams {
   year?: number;
   status?: string; // Novo campo para filtro de status
   category?: string; // campo de categorias
+  search?: string;
 }
 
 @Injectable()
@@ -82,7 +83,7 @@ export class AccountsPayableService {
   }
 
   async findAll(params: FindAllAccountsParams) {
-    const { page, limit, month, year, status, category } = params;
+    const { page, limit, month, year, status, category, search } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AccountPayableWhereInput = {};
@@ -106,6 +107,12 @@ export class AccountsPayableService {
     // Filtro por categoria (exceto "TODAS")
     if (category && category !== 'TODAS') {
       where.category = category;
+    }
+
+    if (search && search.trim() !== '') {
+      where.name = {
+        contains: search.trim()
+      };
     }
 
     const [accounts, total] = await this.prisma.$transaction([
