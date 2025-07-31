@@ -5,6 +5,8 @@ export declare class StockMovementsService {
     constructor(prisma: PrismaService);
     create(createStockMovementDto: CreateStockMovementDto): Promise<{
         id: number;
+        createdAt: Date;
+        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -12,8 +14,6 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
-        createdAt: Date;
-        productId: number;
         userId: number;
     }>;
     findAll(params: {
@@ -27,25 +27,27 @@ export declare class StockMovementsService {
         data: ({
             product: {
                 id: number;
-                createdAt: Date;
                 name: string;
+                createdAt: Date;
+                updatedAt: Date;
                 sku: string | null;
                 description: string | null;
                 unit: string | null;
-                status: string;
                 stockQuantity: number;
-                minStockQuantity: number;
                 salePrice: number;
                 costPrice: number | null;
+                categoryId: number | null;
+                supplierId: number | null;
+                status: string;
+                minStockQuantity: number;
                 location: string | null;
                 mainImageUrl: string | null;
                 videoUrl: string | null;
-                updatedAt: Date;
-                categoryId: number | null;
-                supplierId: number | null;
             };
         } & {
             id: number;
+            createdAt: Date;
+            productId: number;
             type: string;
             quantity: number;
             details: string | null;
@@ -53,14 +55,14 @@ export declare class StockMovementsService {
             unitPriceAtMovement: number | null;
             notes: string | null;
             document: string | null;
-            createdAt: Date;
-            productId: number;
             userId: number;
         })[];
         total: number;
     }>;
     remove(id: number): Promise<{
         id: number;
+        createdAt: Date;
+        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -68,8 +70,6 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
-        createdAt: Date;
-        productId: number;
         userId: number;
     }>;
 }

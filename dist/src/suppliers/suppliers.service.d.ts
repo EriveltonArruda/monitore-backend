@@ -6,10 +6,10 @@ export declare class SuppliersService {
     constructor(prisma: PrismaService);
     create(createSupplierDto: CreateSupplierDto): import(".prisma/client").Prisma.Prisma__SupplierClient<{
         id: number;
+        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
-        email: string | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
     findAll(params: {
         page: number;
@@ -18,39 +18,39 @@ export declare class SuppliersService {
     }): Promise<{
         data: {
             id: number;
+            email: string | null;
             name: string;
             cnpj: string | null;
             phone: string | null;
-            email: string | null;
         }[];
         total: number;
     }>;
     findAllUnpaginated(): import(".prisma/client").Prisma.PrismaPromise<{
         id: number;
+        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
-        email: string | null;
     }[]>;
     findOne(id: number): Promise<{
         id: number;
+        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
-        email: string | null;
     }>;
     update(id: number, updateSupplierDto: UpdateSupplierDto): Promise<{
         id: number;
+        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
-        email: string | null;
     }>;
     remove(id: number): Promise<{
         id: number;
+        email: string | null;
         name: string;
         cnpj: string | null;
         phone: string | null;
-        email: string | null;
     }>;
 }
