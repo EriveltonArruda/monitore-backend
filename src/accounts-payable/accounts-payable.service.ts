@@ -20,23 +20,54 @@ export class AccountsPayableService {
   constructor(private prisma: PrismaService) { }
 
   async create(createAccountsPayableDto: CreateAccountsPayableDto) {
-    const { installmentType, dueDate, isRecurring, recurringUntil } = createAccountsPayableDto;
+    const { installmentType, dueDate, isRecurring, recurringUntil, installments } = createAccountsPayableDto;
 
+    // Se for UNICA, zera os campos de parcelamento
     if (installmentType === 'UNICA') {
       createAccountsPayableDto.installments = null;
       createAccountsPayableDto.currentInstallment = null;
     }
 
+    // Normaliza data
     if (dueDate) {
       const parsed = new Date(dueDate);
       parsed.setHours(0, 0, 0, 0);
       createAccountsPayableDto.dueDate = parsed;
     }
 
+    // Cria a conta original
     const originalAccount = await this.prisma.accountPayable.create({
       data: createAccountsPayableDto,
     });
 
+    // ------ PARCELAMENTO AUTOMÁTICO ------
+    // Cria as outras parcelas (se for parcelado)
+    if (installmentType === 'PARCELADO' && installments && installments > 1) {
+      const baseDueDate = new Date(createAccountsPayableDto.dueDate);
+      const originalDay = baseDueDate.getDate();
+
+      for (let i = 2; i <= installments; i++) {
+        // Calcula o mês e ano corretos para cada parcela
+        const nextMonth = baseDueDate.getMonth() + (i - 1);
+        const nextYear = baseDueDate.getFullYear() + Math.floor(nextMonth / 12);
+        const realMonth = nextMonth % 12;
+
+        // Garante que nunca ultrapassa o último dia do mês
+        const lastDay = new Date(nextYear, realMonth + 1, 0).getDate();
+        const day = Math.min(originalDay, lastDay);
+        const dueDateParcela = new Date(nextYear, realMonth, day, 0, 0, 0, 0);
+
+        await this.prisma.accountPayable.create({
+          data: {
+            ...createAccountsPayableDto,
+            dueDate: dueDateParcela,
+            currentInstallment: i,
+          },
+        });
+      }
+    }
+
+    // ------ RECORRÊNCIA MENSAL (CONTA FIXA) ------
     if (isRecurring && recurringUntil) {
       const startDate = new Date(createAccountsPayableDto.dueDate);
       const endDate = new Date(recurringUntil);
@@ -44,19 +75,18 @@ export class AccountsPayableService {
 
       const originalDay = startDate.getDate();
 
-      let currentYear = startDate.getFullYear();
       let currentMonth = startDate.getMonth() + 1;
+      let currentYear = startDate.getFullYear();
 
       while (true) {
-        if (currentMonth > 11) {
-          currentMonth = 0;
-          currentYear++;
-        }
+        // Calcula o mês e ano para cada repetição
+        const realMonth = currentMonth % 12;
+        const year = currentYear + Math.floor(currentMonth / 12);
 
-        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const adjustedDay = Math.min(originalDay, lastDayOfMonth);
-        const nextDueDate = new Date(currentYear, currentMonth, adjustedDay);
-        nextDueDate.setHours(0, 0, 0, 0);
+        // Garante o último dia válido do mês
+        const lastDayOfMonth = new Date(year, realMonth + 1, 0).getDate();
+        const day = Math.min(originalDay, lastDayOfMonth);
+        const nextDueDate = new Date(year, realMonth, day, 0, 0, 0, 0);
 
         if (nextDueDate > endDate) break;
 
@@ -82,6 +112,7 @@ export class AccountsPayableService {
 
     return originalAccount;
   }
+
 
   async findAll(params: FindAllAccountsParams) {
     const { page, limit, month, year, status, category, search } = params;

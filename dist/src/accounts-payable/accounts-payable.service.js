@@ -19,7 +19,7 @@ let AccountsPayableService = class AccountsPayableService {
         this.prisma = prisma;
     }
     async create(createAccountsPayableDto) {
-        const { installmentType, dueDate, isRecurring, recurringUntil } = createAccountsPayableDto;
+        const { installmentType, dueDate, isRecurring, recurringUntil, installments } = createAccountsPayableDto;
         if (installmentType === 'UNICA') {
             createAccountsPayableDto.installments = null;
             createAccountsPayableDto.currentInstallment = null;
@@ -32,22 +32,38 @@ let AccountsPayableService = class AccountsPayableService {
         const originalAccount = await this.prisma.accountPayable.create({
             data: createAccountsPayableDto,
         });
+        if (installmentType === 'PARCELADO' && installments && installments > 1) {
+            const baseDueDate = new Date(createAccountsPayableDto.dueDate);
+            const originalDay = baseDueDate.getDate();
+            for (let i = 2; i <= installments; i++) {
+                const nextMonth = baseDueDate.getMonth() + (i - 1);
+                const nextYear = baseDueDate.getFullYear() + Math.floor(nextMonth / 12);
+                const realMonth = nextMonth % 12;
+                const lastDay = new Date(nextYear, realMonth + 1, 0).getDate();
+                const day = Math.min(originalDay, lastDay);
+                const dueDateParcela = new Date(nextYear, realMonth, day, 0, 0, 0, 0);
+                await this.prisma.accountPayable.create({
+                    data: {
+                        ...createAccountsPayableDto,
+                        dueDate: dueDateParcela,
+                        currentInstallment: i,
+                    },
+                });
+            }
+        }
         if (isRecurring && recurringUntil) {
             const startDate = new Date(createAccountsPayableDto.dueDate);
             const endDate = new Date(recurringUntil);
             endDate.setHours(0, 0, 0, 0);
             const originalDay = startDate.getDate();
-            let currentYear = startDate.getFullYear();
             let currentMonth = startDate.getMonth() + 1;
+            let currentYear = startDate.getFullYear();
             while (true) {
-                if (currentMonth > 11) {
-                    currentMonth = 0;
-                    currentYear++;
-                }
-                const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                const adjustedDay = Math.min(originalDay, lastDayOfMonth);
-                const nextDueDate = new Date(currentYear, currentMonth, adjustedDay);
-                nextDueDate.setHours(0, 0, 0, 0);
+                const realMonth = currentMonth % 12;
+                const year = currentYear + Math.floor(currentMonth / 12);
+                const lastDayOfMonth = new Date(year, realMonth + 1, 0).getDate();
+                const day = Math.min(originalDay, lastDayOfMonth);
+                const nextDueDate = new Date(year, realMonth, day, 0, 0, 0, 0);
                 if (nextDueDate > endDate)
                     break;
                 await this.prisma.accountPayable.create({
