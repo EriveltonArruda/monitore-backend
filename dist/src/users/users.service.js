@@ -18,12 +18,37 @@ let UsersService = class UsersService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    modulesToString(modules) {
+        if (!modules || !Array.isArray(modules) || modules.length === 0)
+            return null;
+        return modules.join(',');
+    }
+    stringToModules(modulesStr) {
+        if (!modulesStr)
+            return [];
+        return modulesStr.split(',').map((m) => m.trim()).filter(Boolean);
+    }
     async create(createUserDto) {
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-        return this.prisma.user.create({
-            data: { ...createUserDto, password: hashedPassword },
-            select: { id: true, name: true, email: true }
+        const modules = this.modulesToString(createUserDto.modules);
+        const user = await this.prisma.user.create({
+            data: {
+                ...createUserDto,
+                password: hashedPassword,
+                role: createUserDto.role || 'USER',
+                modules,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                modules: true,
+                createdAt: true,
+                updatedAt: true
+            },
         });
+        return { ...user, modules: this.stringToModules(user.modules) };
     }
     async findAll(params) {
         const { page, limit, search } = params;
@@ -32,12 +57,20 @@ let UsersService = class UsersService {
         if (search) {
             where.OR = [
                 { name: { contains: search } },
-                { email: { contains: search } }
+                { email: { contains: search } },
             ];
         }
         const [users, total] = await this.prisma.$transaction([
             this.prisma.user.findMany({
-                select: { id: true, name: true, email: true, createdAt: true, updatedAt: true },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    modules: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
                 where,
                 orderBy: { name: 'asc' },
                 skip,
@@ -45,30 +78,75 @@ let UsersService = class UsersService {
             }),
             this.prisma.user.count({ where }),
         ]);
-        return { data: users, total };
+        const usersWithModules = users.map(user => ({
+            ...user,
+            modules: this.stringToModules(user.modules),
+        }));
+        return { data: usersWithModules, total };
     }
     async findByEmail(email) {
-        return this.prisma.user.findUnique({ where: { email } });
+        const user = await this.prisma.user.findUnique({ where: { email } });
+        if (!user)
+            return null;
+        return { ...user, modules: this.stringToModules(user.modules) };
     }
     async findOne(id) {
-        const user = await this.prisma.user.findUnique({ where: { id } });
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                modules: true,
+                createdAt: true,
+                updatedAt: true
+            },
+        });
         if (!user) {
             throw new common_1.NotFoundException(`Usuário com ID #${id} não encontrado.`);
         }
-        return user;
+        return { ...user, modules: this.stringToModules(user.modules) };
     }
     async changePassword(id, changePasswordDto) {
         await this.findOne(id);
         const hashedPassword = await bcrypt.hash(changePasswordDto.password, 10);
-        return this.prisma.user.update({
+        const user = await this.prisma.user.update({
             where: { id },
             data: { password: hashedPassword },
-            select: { id: true, name: true, email: true }
+            select: {
+                id: true, name: true, email: true, role: true, modules: true, createdAt: true, updatedAt: true
+            },
         });
+        return { ...user, modules: this.stringToModules(user.modules) };
+    }
+    async update(id, updateUserDto) {
+        const user = await this.findOne(id);
+        const modules = typeof updateUserDto.modules !== 'undefined'
+            ? this.modulesToString(updateUserDto.modules)
+            : this.modulesToString(user.modules);
+        const { password, ...fieldsToUpdate } = updateUserDto;
+        const updated = await this.prisma.user.update({
+            where: { id },
+            data: {
+                name: fieldsToUpdate.name ?? user.name,
+                email: fieldsToUpdate.email ?? user.email,
+                role: fieldsToUpdate.role ?? user.role,
+                modules,
+            },
+            select: {
+                id: true, name: true, email: true, role: true, modules: true, createdAt: true, updatedAt: true
+            },
+        });
+        return { ...updated, modules: this.stringToModules(updated.modules) };
     }
     async remove(id) {
         await this.findOne(id);
-        return this.prisma.user.delete({ where: { id } });
+        const user = await this.prisma.user.delete({
+            where: { id },
+            select: { id: true, name: true, email: true, role: true, modules: true, createdAt: true, updatedAt: true },
+        });
+        return { ...user, modules: this.stringToModules(user.modules) };
     }
 };
 exports.UsersService = UsersService;

@@ -1,24 +1,35 @@
-// Este é o "porteiro". Ele define as URLs e direciona as requisições para o service.
+// users.controller.ts
 
-import { Controller, Get, Post, Body, UseGuards, Delete, Param, ParseIntPipe, Patch, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Delete,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Query,
+  Req
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
-  // Rota para criar um novo usuário. Aberta, pois um admin pode criar outros.
+  // Cria novo usuário (admin pode usar essa rota)
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
-  // Rota para listar todos os usuários.
-  // @UseGuards(JwtAuthGuard) garante que apenas usuários logados (com token válido) podem acessar.
-  // @Query() captura os parâmetros da URL para a paginação.
+  // Lista todos os usuários (precisa estar logado)
   @UseGuards(JwtAuthGuard)
   @Get()
   findAll(
@@ -33,7 +44,17 @@ export class UsersController {
     });
   }
 
-  // Rota para alterar a senha de um usuário específico.
+  // Edita nome/email/role de um usuário (precisa estar logado)
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  // Altera senha de um usuário (precisa estar logado)
   @UseGuards(JwtAuthGuard)
   @Patch(':id/password')
   changePassword(
@@ -43,10 +64,17 @@ export class UsersController {
     return this.usersService.changePassword(id, changePasswordDto);
   }
 
-  // Rota para deletar um usuário específico.
+  // Deleta um usuário (precisa estar logado)
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getMe(@Req() req: any) {
+    const userId = req.user['id']; // req.user é preenchido pelo JwtStrategy
+    return this.usersService.findOne(userId);
   }
 }

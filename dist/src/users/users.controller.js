@@ -16,8 +16,9 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const create_user_dto_1 = require("./dto/create-user.dto");
-const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const update_user_dto_1 = require("./dto/update-user.dto");
 const change_password_dto_1 = require("./dto/change-password.dto");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let UsersController = class UsersController {
     usersService;
     constructor(usersService) {
@@ -33,11 +34,18 @@ let UsersController = class UsersController {
             search,
         });
     }
+    update(id, updateUserDto) {
+        return this.usersService.update(id, updateUserDto);
+    }
     changePassword(id, changePasswordDto) {
         return this.usersService.changePassword(id, changePasswordDto);
     }
     remove(id) {
         return this.usersService.remove(id);
+    }
+    async getMe(req) {
+        const userId = req.user['id'];
+        return this.usersService.findOne(userId);
     }
 };
 exports.UsersController = UsersController;
@@ -60,6 +68,15 @@ __decorate([
 ], UsersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, update_user_dto_1.UpdateUserDto]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "update", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Patch)(':id/password'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
@@ -75,6 +92,14 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "remove", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('me'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getMe", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])

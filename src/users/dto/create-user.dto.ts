@@ -1,5 +1,25 @@
-// Define os dados necessários para criar um novo usuário.
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsIn, MinLength, IsArray, ArrayNotEmpty } from 'class-validator';
+
+// Enum igual ao do Prisma
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+  MANAGER = 'MANAGER',
+}
+
+// Enum dos módulos do sistema
+export enum UserModule {
+  CONTAS_PAGAR = 'CONTAS_PAGAR',
+  RELATORIO_CONTAS_PAGAR = 'RELATORIO_CONTAS_PAGAR',
+  ESTOQUE = 'ESTOQUE',
+  MOVIMENTACOES = 'MOVIMENTACOES',
+  RELATORIOS = 'RELATORIOS',
+  FORNECEDORES = 'FORNECEDORES',
+  CATEGORIAS = 'CATEGORIAS',
+  DASHBOARD = 'DASHBOARD',
+  CONTATOS = 'CONTATOS',
+  USUARIOS = 'USUARIOS',
+}
 
 export class CreateUserDto {
   @IsString()
@@ -12,4 +32,14 @@ export class CreateUserDto {
   @IsString()
   @MinLength(6, { message: 'A senha deve ter no mínimo 6 caracteres.' })
   password: string;
+
+  @IsOptional()
+  @IsIn(Object.values(UserRole))
+  role?: UserRole;
+
+  // NOVO: lista de módulos de acesso (opcional, pode ser vazio)
+  @IsOptional()
+  @IsArray()
+  @IsIn(Object.values(UserModule), { each: true })
+  modules?: UserModule[];
 }
