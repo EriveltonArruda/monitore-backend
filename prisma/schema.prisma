@@ -18,7 +18,7 @@ model Product {
   status           String   @default("ATIVO")
   stockQuantity    Int
   minStockQuantity Int      @default(0)
-  salePrice        Float
+  // salePrice        Float   <<< Não uso mais
   costPrice        Float?
   location         String?
   mainImageUrl     String?

@@ -21,9 +21,7 @@ export class CreateProductDto {
   @Min(0)
   stockQuantity: number;
 
-  @IsNumber()
-  @Min(0)
-  salePrice: number;
+  // >>> REMOVIDO salePrice <<<
 
   @IsNumber()
   @IsOptional()

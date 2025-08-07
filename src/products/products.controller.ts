@@ -7,11 +7,17 @@ import {
   Param,
   Delete,
   ParseIntPipe,
-  Query, // Importamos o decorator @Query
+  Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('products')
 export class ProductsController {
@@ -22,11 +28,6 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
-  /**
-   * ROTA: GET /products
-   * ATUALIZAÇÃO: O método agora também aceita 'page' e 'limit' para paginação.
-   * Ex: /products?page=2&limit=10
-   */
   @Get()
   findAll(
     @Query('search') search?: string,
@@ -41,12 +42,11 @@ export class ProductsController {
       categoryId: categoryId ? Number(categoryId) : undefined,
       status,
       stockLevel,
-      page: page ? Number(page) : 1, // Página padrão é 1
-      limit: limit ? Number(limit) : 10, // Limite padrão de 10 itens por página
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
     });
   }
 
-  // NOVO ENDPOINT: Busca TODOS os produtos, sem paginação
   @Get('all')
   findAllUnpaginated() {
     return this.productsService.findAllUnpaginated();
@@ -55,6 +55,33 @@ export class ProductsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.findOne(id);
+  }
+
+  // --- UPLOAD DE IMAGEM ---
+  @Post(':id/upload-image')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads/products',
+      filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, unique + extname(file.originalname));
+      }
+    }),
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.startsWith('image/')) {
+        return cb(new BadRequestException('Arquivo precisa ser uma imagem'), false);
+      }
+      cb(null, true);
+    }
+  }))
+  async uploadProductImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado');
+    const imageUrl = `/uploads/products/${file.filename}`;
+    await this.productsService.updateMainImageUrl(Number(id), imageUrl);
+    return { imageUrl };
   }
 
   @Patch(':id')

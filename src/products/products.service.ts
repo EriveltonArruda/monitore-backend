@@ -25,6 +25,7 @@ export class ProductsService {
     return this.prisma.product.create({
       data: {
         ...productData,
+        // NÃO HÁ MAIS salePrice
         category: {
           connect: { id: categoryId },
         },
@@ -92,7 +93,7 @@ export class ProductsService {
       select: {
         id: true,
         name: true,
-        salePrice: true,
+        // salePrice: true, // Não uso mais
       }
     });
   }
@@ -107,6 +108,13 @@ export class ProductsService {
       throw new NotFoundException(`Produto com ID #${id} não encontrado.`);
     }
     return product;
+  }
+
+  async updateMainImageUrl(id: number, imageUrl: string) {
+    return this.prisma.product.update({
+      where: { id },
+      data: { mainImageUrl: imageUrl },
+    });
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {

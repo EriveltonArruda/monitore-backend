@@ -24,7 +24,7 @@ let DashboardService = class DashboardService {
                 name: true,
                 stockQuantity: true,
                 minStockQuantity: true,
-                salePrice: true,
+                costPrice: true,
             },
         });
         const lowStockProducts = allProducts.filter((p) => p.stockQuantity <= p.minStockQuantity);
@@ -37,7 +37,7 @@ let DashboardService = class DashboardService {
             }),
         ]);
         const totalProducts = allProducts.length;
-        const stockValue = allProducts.reduce((acc, product) => acc + (product.stockQuantity * product.salePrice), 0);
+        const stockValue = allProducts.reduce((acc, product) => acc + (product.stockQuantity * (product.costPrice || 0)), 0);
         const lowStockProductsCount = lowStockProducts.length;
         return {
             totalProducts,

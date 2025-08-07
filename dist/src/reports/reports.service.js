@@ -21,9 +21,9 @@ let ReportsService = class ReportsService {
     async getGeneralReport() {
         const totalProducts = await this.prisma.product.count();
         const allProducts = await this.prisma.product.findMany({
-            select: { stockQuantity: true, minStockQuantity: true, salePrice: true },
+            select: { stockQuantity: true, minStockQuantity: true, costPrice: true },
         });
-        const stockValue = allProducts.reduce((acc, p) => acc + p.stockQuantity * p.salePrice, 0);
+        const stockValue = allProducts.reduce((acc, p) => acc + p.stockQuantity * (p.costPrice || 0), 0);
         const lowStockProductsCount = allProducts.filter(p => p.stockQuantity <= p.minStockQuantity).length;
         const productsByCategory = await this.prisma.product.groupBy({
             by: ['categoryId'],
@@ -51,7 +51,7 @@ let ReportsService = class ReportsService {
         });
         const valueByCategory = productsWithValue.reduce((acc, product) => {
             const categoryName = product.category?.name || 'Sem Categoria';
-            const productValue = product.stockQuantity * product.salePrice;
+            const productValue = product.stockQuantity * (product.costPrice || 0);
             acc[categoryName] = (acc[categoryName] || 0) + productValue;
             return acc;
         }, {});

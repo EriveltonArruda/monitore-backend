@@ -10,9 +10,9 @@ export class ReportsService {
     // --- 1. DADOS PARA OS CARDS DE RESUMO ---
     const totalProducts = await this.prisma.product.count();
     const allProducts = await this.prisma.product.findMany({
-      select: { stockQuantity: true, minStockQuantity: true, salePrice: true },
+      select: { stockQuantity: true, minStockQuantity: true, costPrice: true },
     });
-    const stockValue = allProducts.reduce((acc, p) => acc + p.stockQuantity * p.salePrice, 0);
+    const stockValue = allProducts.reduce((acc, p) => acc + p.stockQuantity * (p.costPrice || 0), 0);
     const lowStockProductsCount = allProducts.filter(p => p.stockQuantity <= p.minStockQuantity).length;
 
     // --- 2. DADOS PARA O GRÁFICO DE PRODUTOS POR CATEGORIA (PIZZA) ---
@@ -24,7 +24,6 @@ export class ReportsService {
       where: { categoryId: { not: null } },
     });
 
-    // CORREÇÃO APLICADA AQUI:
     const categoryIds = productsByCategory
       .map(item => item.categoryId)
       .filter((id): id is number => id !== null);
@@ -49,7 +48,8 @@ export class ReportsService {
 
     const valueByCategory = productsWithValue.reduce((acc, product) => {
       const categoryName = product.category?.name || 'Sem Categoria';
-      const productValue = product.stockQuantity * product.salePrice;
+      // Calcula o valor em estoque com costPrice (ou só quantidade)
+      const productValue = product.stockQuantity * (product.costPrice || 0);
       acc[categoryName] = (acc[categoryName] || 0) + productValue;
       return acc;
     }, {} as Record<string, number>);
@@ -81,7 +81,6 @@ export class ReportsService {
       count: item._count.id,
     }));
 
-    // --- 5. Retornar todos os dados compilados ---
     return {
       summaryCards: {
         totalProducts,
@@ -95,7 +94,7 @@ export class ReportsService {
     };
   }
 
-  // NOVO MÉTODO: Relatório mensal de contas a pagar agrupado por mês
+  // Relatório mensal de contas a pagar agrupado por mês (SEM ALTERAÇÕES)
   async getAccountsPayableMonthlyReport(params: {
     year: number,
     category?: string,
@@ -104,7 +103,6 @@ export class ReportsService {
   }) {
     const { year, category = "TODAS", page = 1, limit = 12 } = params;
 
-    // Filtro base: ano
     let where: any = {
       dueDate: {
         gte: new Date(`${year}-01-01T00:00:00.000Z`),
@@ -112,12 +110,10 @@ export class ReportsService {
       },
     };
 
-    // Filtro de categoria, se informado
     if (category && category !== "TODAS") {
       where.category = { equals: category };
     }
 
-    // Busca todas as contas a pagar do ano (e categoria, se houver)
     const accounts = await this.prisma.accountPayable.findMany({
       where,
       select: {
@@ -128,10 +124,8 @@ export class ReportsService {
       },
     });
 
-    // Agrupa por mês
     const grouped = {} as Record<string, { total: number, paid: number, pending: number, count: number }>;
     for (const account of accounts) {
-      // Mês no formato YYYY-MM
       const due = new Date(account.dueDate);
       const key = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}`;
       if (!grouped[key]) {
@@ -146,17 +140,13 @@ export class ReportsService {
       }
     }
 
-    // Ordena os meses
     const allMonths = Object.keys(grouped).sort();
-
-    // Paginação manual
     const total = allMonths.length;
     const totalPages = Math.ceil(total / limit);
     const start = (page - 1) * limit;
     const end = start + limit;
     const pagedMonths = allMonths.slice(start, end);
 
-    // Monta os itens para retornar
     const data = pagedMonths.map(month => ({
       month,
       ...grouped[month]

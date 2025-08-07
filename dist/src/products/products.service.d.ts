@@ -22,7 +22,6 @@ export declare class ProductsService {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -54,7 +53,6 @@ export declare class ProductsService {
             description: string | null;
             unit: string | null;
             stockQuantity: number;
-            salePrice: number;
             costPrice: number | null;
             categoryId: number | null;
             supplierId: number | null;
@@ -69,7 +67,6 @@ export declare class ProductsService {
     findAllUnpaginated(): Prisma.PrismaPromise<{
         id: number;
         name: string;
-        salePrice: number;
     }[]>;
     findOne(id: number): Promise<{
         category: {
@@ -92,7 +89,24 @@ export declare class ProductsService {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
+        costPrice: number | null;
+        categoryId: number | null;
+        supplierId: number | null;
+        status: string;
+        minStockQuantity: number;
+        location: string | null;
+        mainImageUrl: string | null;
+        videoUrl: string | null;
+    }>;
+    updateMainImageUrl(id: number, imageUrl: string): Promise<{
+        id: number;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        sku: string | null;
+        description: string | null;
+        unit: string | null;
+        stockQuantity: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -111,7 +125,6 @@ export declare class ProductsService {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -130,7 +143,6 @@ export declare class ProductsService {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;

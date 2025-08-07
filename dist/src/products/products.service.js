@@ -79,7 +79,6 @@ let ProductsService = class ProductsService {
             select: {
                 id: true,
                 name: true,
-                salePrice: true,
             }
         });
     }
@@ -92,6 +91,12 @@ let ProductsService = class ProductsService {
             throw new common_1.NotFoundException(`Produto com ID #${id} não encontrado.`);
         }
         return product;
+    }
+    async updateMainImageUrl(id, imageUrl) {
+        return this.prisma.product.update({
+            where: { id },
+            data: { mainImageUrl: imageUrl },
+        });
     }
     async update(id, updateProductDto) {
         await this.findOne(id);

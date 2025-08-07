@@ -17,7 +17,6 @@ class CreateProductDto {
     description;
     unit;
     stockQuantity;
-    salePrice;
     costPrice;
     categoryId;
     supplierId;
@@ -48,11 +47,6 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductDto.prototype, "stockQuantity", void 0);
-__decorate([
-    (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.Min)(0),
-    __metadata("design:type", Number)
-], CreateProductDto.prototype, "salePrice", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),

@@ -11,7 +11,7 @@ export declare class DashboardService {
             id: number;
             name: string;
             stockQuantity: number;
-            salePrice: number;
+            costPrice: number | null;
             minStockQuantity: number;
         }[];
         recentMovements: ({

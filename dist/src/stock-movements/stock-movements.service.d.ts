@@ -34,7 +34,6 @@ export declare class StockMovementsService {
                 description: string | null;
                 unit: string | null;
                 stockQuantity: number;
-                salePrice: number;
                 costPrice: number | null;
                 categoryId: number | null;
                 supplierId: number | null;

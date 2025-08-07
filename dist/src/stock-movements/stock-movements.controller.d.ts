@@ -27,7 +27,6 @@ export declare class StockMovementsController {
                 description: string | null;
                 unit: string | null;
                 stockQuantity: number;
-                salePrice: number;
                 costPrice: number | null;
                 categoryId: number | null;
                 supplierId: number | null;

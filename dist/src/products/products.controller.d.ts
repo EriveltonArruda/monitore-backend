@@ -13,7 +13,6 @@ export declare class ProductsController {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -45,7 +44,6 @@ export declare class ProductsController {
             description: string | null;
             unit: string | null;
             stockQuantity: number;
-            salePrice: number;
             costPrice: number | null;
             categoryId: number | null;
             supplierId: number | null;
@@ -60,7 +58,6 @@ export declare class ProductsController {
     findAllUnpaginated(): import(".prisma/client").Prisma.PrismaPromise<{
         id: number;
         name: string;
-        salePrice: number;
     }[]>;
     findOne(id: number): Promise<{
         category: {
@@ -83,7 +80,6 @@ export declare class ProductsController {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -92,6 +88,9 @@ export declare class ProductsController {
         location: string | null;
         mainImageUrl: string | null;
         videoUrl: string | null;
+    }>;
+    uploadProductImage(id: number, file: Express.Multer.File): Promise<{
+        imageUrl: string;
     }>;
     update(id: number, updateProductDto: UpdateProductDto): Promise<{
         id: number;
@@ -102,7 +101,6 @@ export declare class ProductsController {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;
@@ -121,7 +119,6 @@ export declare class ProductsController {
         description: string | null;
         unit: string | null;
         stockQuantity: number;
-        salePrice: number;
         costPrice: number | null;
         categoryId: number | null;
         supplierId: number | null;

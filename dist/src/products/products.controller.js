@@ -17,6 +17,9 @@ const common_1 = require("@nestjs/common");
 const products_service_1 = require("./products.service");
 const create_product_dto_1 = require("./dto/create-product.dto");
 const update_product_dto_1 = require("./dto/update-product.dto");
+const platform_express_1 = require("@nestjs/platform-express");
+const multer_1 = require("multer");
+const path_1 = require("path");
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
@@ -40,6 +43,13 @@ let ProductsController = class ProductsController {
     }
     findOne(id) {
         return this.productsService.findOne(id);
+    }
+    async uploadProductImage(id, file) {
+        if (!file)
+            throw new common_1.BadRequestException('Nenhum arquivo enviado');
+        const imageUrl = `/uploads/products/${file.filename}`;
+        await this.productsService.updateMainImageUrl(Number(id), imageUrl);
+        return { imageUrl };
     }
     update(id, updateProductDto) {
         return this.productsService.update(id, updateProductDto);
@@ -81,6 +91,29 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Post)(':id/upload-image'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads/products',
+            filename: (req, file, cb) => {
+                const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                cb(null, unique + (0, path_1.extname)(file.originalname));
+            }
+        }),
+        fileFilter: (req, file, cb) => {
+            if (!file.mimetype.startsWith('image/')) {
+                return cb(new common_1.BadRequestException('Arquivo precisa ser uma imagem'), false);
+            }
+            cb(null, true);
+        }
+    })),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "uploadProductImage", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
