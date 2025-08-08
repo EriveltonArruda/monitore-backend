@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,6 +23,9 @@ const update_product_dto_1 = require("./dto/update-product.dto");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
+const pdfmake_1 = __importDefault(require("pdfmake"));
+const path_2 = require("path");
+const exceljs_1 = __importDefault(require("exceljs"));
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
@@ -27,6 +33,142 @@ let ProductsController = class ProductsController {
     }
     create(createProductDto) {
         return this.productsService.create(createProductDto);
+    }
+    async exportProductsPdf(res) {
+        const products = await this.productsService.findAllUnpaginatedFull();
+        const fonts = {
+            Roboto: {
+                normal: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
+                bold: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Bold.ttf'),
+                italics: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Italic.ttf'),
+                bolditalics: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-BoldItalic.ttf')
+            }
+        };
+        const printer = new pdfmake_1.default(fonts);
+        const tableBody = [
+            [
+                { text: 'Nome', style: 'tableHeader' },
+                { text: 'Categoria', style: 'tableHeader' },
+                { text: 'Estoque', style: 'tableHeader' },
+                { text: 'Preço Custo', style: 'tableHeader' },
+                { text: 'Fornecedor', style: 'tableHeader' }
+            ],
+            ...products.map((p) => [
+                p.name ?? '-',
+                p.category?.name ?? '-',
+                p.stockQuantity ?? '-',
+                p.costPrice != null ? `R$ ${Number(p.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
+                p.supplier?.name ?? '-'
+            ])
+        ];
+        const docDefinition = {
+            content: [
+                { text: 'Relatório de Produtos', style: 'header', margin: [0, 0, 0, 10] },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ['*', '*', 'auto', 'auto', '*'],
+                        body: tableBody
+                    },
+                    layout: 'lightHorizontalLines',
+                },
+                {
+                    text: `\nData de geração: ${new Date().toLocaleString('pt-BR')}`,
+                    fontSize: 9,
+                    alignment: 'right',
+                    margin: [0, 10, 0, 0]
+                },
+                {
+                    text: 'Gerado pelo Sistema Monitore',
+                    fontSize: 9,
+                    alignment: 'center',
+                    margin: [0, 20, 0, 0]
+                }
+            ],
+            styles: {
+                header: {
+                    fontSize: 16,
+                    bold: true,
+                    alignment: 'center'
+                },
+                tableHeader: {
+                    bold: true,
+                    fillColor: '#eeeeee'
+                }
+            },
+            defaultStyle: {
+                font: 'Roboto'
+            }
+        };
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks = [];
+        pdfDoc.on('data', (chunk) => chunks.push(chunk));
+        pdfDoc.on('end', () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="relatorio-produtos.pdf"`,
+                'Content-Length': pdfBuffer.length,
+            });
+            res.end(pdfBuffer);
+        });
+        pdfDoc.end();
+    }
+    async exportProductsExcel(res) {
+        const products = await this.productsService.findAllUnpaginatedFull();
+        const headers = [
+            'ID',
+            'Nome',
+            'SKU',
+            'Descrição',
+            'Categoria',
+            'Fornecedor',
+            'Estoque',
+            'Estoque Mínimo',
+            'Preço de Custo',
+            'Status',
+            'Localização',
+            'Data Cadastro'
+        ];
+        const workbook = new exceljs_1.default.Workbook();
+        const worksheet = workbook.addWorksheet('Produtos');
+        worksheet.addRow(headers);
+        worksheet.getRow(1).font = { bold: true };
+        products.forEach((p) => {
+            worksheet.addRow([
+                p.id ?? '-',
+                p.name ?? '-',
+                p.sku ?? '-',
+                p.description ?? '-',
+                p.category?.name ?? '-',
+                p.supplier?.name ?? '-',
+                p.stockQuantity ?? '-',
+                p.minStockQuantity ?? '-',
+                p.costPrice != null ? Number(p.costPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-',
+                p.status ?? '-',
+                p.location ?? '-',
+                p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '-',
+            ]);
+        });
+        (worksheet.columns || []).forEach((column) => {
+            if (!column)
+                return;
+            let maxLength = 10;
+            column.eachCell({ includeEmpty: true }, (cell) => {
+                const v = cell.value;
+                const text = v == null
+                    ? ''
+                    : typeof v === 'object' && 'richText' in v
+                        ? v.richText.map((rt) => rt.text).join('')
+                        : v.toString();
+                maxLength = Math.max(maxLength, text.length);
+            });
+            column.width = maxLength + 2;
+        });
+        const buffer = await workbook.xlsx.writeBuffer();
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=relatorio-produtos.xlsx');
+        res.end(buffer);
     }
     findAll(search, categoryId, status, stockLevel, page, limit) {
         return this.productsService.findAll({
@@ -39,7 +181,7 @@ let ProductsController = class ProductsController {
         });
     }
     findAllUnpaginated() {
-        return this.productsService.findAllUnpaginated();
+        return this.productsService.findAllUnpaginatedFull();
     }
     findOne(id) {
         return this.productsService.findOne(id);
@@ -66,6 +208,20 @@ __decorate([
     __metadata("design:paramtypes", [create_product_dto_1.CreateProductDto]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('export-pdf'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "exportProductsPdf", null);
+__decorate([
+    (0, common_1.Get)('export-excel'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "exportProductsExcel", null);
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('search')),

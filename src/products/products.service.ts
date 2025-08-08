@@ -1,11 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { BadRequestException } from '@nestjs/common';
 
-// A interface de parâmetros agora inclui 'page' e 'limit'
 interface FindAllProductsParams {
   search?: string;
   categoryId?: number;
@@ -25,27 +23,18 @@ export class ProductsService {
     return this.prisma.product.create({
       data: {
         ...productData,
-        // NÃO HÁ MAIS salePrice
-        category: {
-          connect: { id: categoryId },
-        },
+        category: { connect: { id: categoryId } },
         supplier: supplierId ? { connect: { id: supplierId } } : undefined,
       },
     });
   }
 
-  /**
-   * MÉTODO: findAll
-   * ATUALIZAÇÃO: Agora implementa a lógica de paginação.
-   */
   async findAll(params?: FindAllProductsParams) {
     const { search, categoryId, status, stockLevel, page = 1, limit = 10 } = params || {};
 
-    const skip = (page - 1) * limit; // Calcula quantos itens pular
-
+    const skip = (page - 1) * limit;
     const andConditions: Prisma.ProductWhereInput[] = [];
 
-    // Removemos a opção `mode: 'insensitive'`, pois não é suportada pelo Prisma com SQLite
     if (search) {
       andConditions.push({
         OR: [
@@ -54,17 +43,17 @@ export class ProductsService {
         ]
       });
     }
-
     if (categoryId) { andConditions.push({ categoryId }); }
     if (status) { andConditions.push({ status: status.toUpperCase() }); }
-    if (stockLevel === 'low') { andConditions.push({ stockQuantity: { lte: this.prisma.product.fields.minStockQuantity } }); }
-    else if (stockLevel === 'normal') { andConditions.push({ stockQuantity: { gt: this.prisma.product.fields.minStockQuantity } }); }
+    if (stockLevel === 'low') {
+      andConditions.push({ stockQuantity: { lte: this.prisma.product.fields.minStockQuantity } });
+    } else if (stockLevel === 'normal') {
+      andConditions.push({ stockQuantity: { gt: this.prisma.product.fields.minStockQuantity } });
+    }
 
     const where: Prisma.ProductWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    // Usamos $transaction para executar duas consultas em paralelo para eficiência
     const [products, total] = await this.prisma.$transaction([
-      // Consulta 1: Busca os itens da página atual
       this.prisma.product.findMany({
         where,
         include: {
@@ -75,26 +64,23 @@ export class ProductsService {
         skip: skip,
         take: limit,
       }),
-      // Consulta 2: Conta o número total de itens que correspondem aos filtros
       this.prisma.product.count({ where }),
     ]);
 
-    // Retornamos um objeto com os dados e o total de registros
     return {
       data: products,
       total,
     };
   }
 
-  // NOVO MÉTODO: Retorna todos os produtos com os campos necessários para o dropdown
-  findAllUnpaginated() {
+  // Método para PDF e Excel: retorna todos os produtos completos (inclui category e supplier)
+  findAllUnpaginatedFull() {
     return this.prisma.product.findMany({
       orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        // salePrice: true, // Não uso mais
-      }
+      include: {
+        category: true,
+        supplier: true,
+      },
     });
   }
 
@@ -139,16 +125,14 @@ export class ProductsService {
       });
     } catch (error) {
       console.error(error)
-      // Se for erro de constraint do Prisma (produto vinculado em outra tabela)
       if (
-        error.code === 'P2003' || // Foreign key constraint failed on the field
-        error.code === 'P2014'    // Tried to delete a record with child records
+        error.code === 'P2003' ||
+        error.code === 'P2014'
       ) {
         throw new BadRequestException(
           'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.'
         );
       }
-      // Se não for um erro tratado, lance o erro original
       throw error;
     }
   }

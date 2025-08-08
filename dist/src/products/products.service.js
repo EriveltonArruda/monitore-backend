@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const common_2 = require("@nestjs/common");
 let ProductsService = class ProductsService {
     prisma;
     constructor(prisma) {
@@ -23,9 +22,7 @@ let ProductsService = class ProductsService {
         return this.prisma.product.create({
             data: {
                 ...productData,
-                category: {
-                    connect: { id: categoryId },
-                },
+                category: { connect: { id: categoryId } },
                 supplier: supplierId ? { connect: { id: supplierId } } : undefined,
             },
         });
@@ -73,13 +70,13 @@ let ProductsService = class ProductsService {
             total,
         };
     }
-    findAllUnpaginated() {
+    findAllUnpaginatedFull() {
         return this.prisma.product.findMany({
             orderBy: { name: 'asc' },
-            select: {
-                id: true,
-                name: true,
-            }
+            include: {
+                category: true,
+                supplier: true,
+            },
         });
     }
     async findOne(id) {
@@ -121,7 +118,7 @@ let ProductsService = class ProductsService {
             console.error(error);
             if (error.code === 'P2003' ||
                 error.code === 'P2014') {
-                throw new common_2.BadRequestException('Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.');
+                throw new common_1.BadRequestException('Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.');
             }
             throw error;
         }
