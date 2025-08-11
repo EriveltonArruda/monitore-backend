@@ -3,15 +3,15 @@ import { CreateAccountsPayableDto } from './dto/create-accounts-payable.dto';
 import { UpdateAccountsPayableDto } from './dto/update-accounts-payable.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { addMonths, startOfMonth, endOfMonth, format } from 'date-fns';
+import { format } from 'date-fns';
 
 interface FindAllAccountsParams {
   page: number;
   limit: number;
   month?: number;
   year?: number;
-  status?: string; // Novo campo para filtro de status
-  category?: string; // campo de categorias
+  status?: string;
+  category?: string;
   search?: string;
 }
 
@@ -22,37 +22,30 @@ export class AccountsPayableService {
   async create(createAccountsPayableDto: CreateAccountsPayableDto) {
     const { installmentType, dueDate, isRecurring, recurringUntil, installments } = createAccountsPayableDto;
 
-    // Se for UNICA, zera os campos de parcelamento
     if (installmentType === 'UNICA') {
       createAccountsPayableDto.installments = null;
       createAccountsPayableDto.currentInstallment = null;
     }
 
-    // Normaliza data
     if (dueDate) {
       const parsed = new Date(dueDate);
       parsed.setHours(0, 0, 0, 0);
       createAccountsPayableDto.dueDate = parsed;
     }
 
-    // Cria a conta original
     const originalAccount = await this.prisma.accountPayable.create({
       data: createAccountsPayableDto,
     });
 
-    // ------ PARCELAMENTO AUTOMÁTICO ------
-    // Cria as outras parcelas (se for parcelado)
     if (installmentType === 'PARCELADO' && installments && installments > 1) {
       const baseDueDate = new Date(createAccountsPayableDto.dueDate);
       const originalDay = baseDueDate.getDate();
 
       for (let i = 2; i <= installments; i++) {
-        // Calcula o mês e ano corretos para cada parcela
         const nextMonth = baseDueDate.getMonth() + (i - 1);
         const nextYear = baseDueDate.getFullYear() + Math.floor(nextMonth / 12);
         const realMonth = nextMonth % 12;
 
-        // Garante que nunca ultrapassa o último dia do mês
         const lastDay = new Date(nextYear, realMonth + 1, 0).getDate();
         const day = Math.min(originalDay, lastDay);
         const dueDateParcela = new Date(nextYear, realMonth, day, 0, 0, 0, 0);
@@ -67,7 +60,6 @@ export class AccountsPayableService {
       }
     }
 
-    // ------ RECORRÊNCIA MENSAL (CONTA FIXA) ------
     if (isRecurring && recurringUntil) {
       const startDate = new Date(createAccountsPayableDto.dueDate);
       const endDate = new Date(recurringUntil);
@@ -79,11 +71,9 @@ export class AccountsPayableService {
       let currentYear = startDate.getFullYear();
 
       while (true) {
-        // Calcula o mês e ano para cada repetição
         const realMonth = currentMonth % 12;
         const year = currentYear + Math.floor(currentMonth / 12);
 
-        // Garante o último dia válido do mês
         const lastDayOfMonth = new Date(year, realMonth + 1, 0).getDate();
         const day = Math.min(originalDay, lastDayOfMonth);
         const nextDueDate = new Date(year, realMonth, day, 0, 0, 0, 0);
@@ -113,38 +103,35 @@ export class AccountsPayableService {
     return originalAccount;
   }
 
-
   async findAll(params: FindAllAccountsParams) {
     const { page, limit, month, year, status, category, search } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AccountPayableWhereInput = {};
 
+    // FILTRO POR MÊS + ANO
     if (month && year) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0);
-      endDate.setHours(23, 59, 59, 999);
-
-      where.dueDate = {
-        gte: startDate,
-        lte: endDate,
-      };
+      const startDate = new Date(Number(year), Number(month) - 1, 1, 0, 0, 0, 0);
+      const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+      where.dueDate = { gte: startDate, lte: endDate };
+    }
+    // NOVO: FILTRO POR ANO INTEIRO (sem mês)
+    else if (year && !month) {
+      const startDate = new Date(Number(year), 0, 1, 0, 0, 0, 0);
+      const endDate = new Date(Number(year), 11, 31, 23, 59, 59, 999);
+      where.dueDate = { gte: startDate, lte: endDate };
     }
 
-    // Filtro por status (exceto "TODOS")
     if (status && status !== 'TODOS') {
       where.status = status;
     }
 
-    // Filtro por categoria (exceto "TODAS")
     if (category && category !== 'TODAS') {
       where.category = category;
     }
 
     if (search && search.trim() !== '') {
-      where.name = {
-        contains: search.trim()
-      };
+      where.name = { contains: search.trim() };
     }
 
     const [accounts, total] = await this.prisma.$transaction([
@@ -153,25 +140,18 @@ export class AccountsPayableService {
         orderBy: { dueDate: 'asc' },
         skip,
         take: limit,
-        include: {
-          payments: true,
-        },
+        include: { payments: true },
       }),
       this.prisma.accountPayable.count({ where }),
     ]);
 
-    return {
-      data: accounts,
-      total,
-    };
+    return { data: accounts, total };
   }
 
   async findOne(id: number) {
     const account = await this.prisma.accountPayable.findUnique({
       where: { id },
-      include: {
-        payments: true,
-      },
+      include: { payments: true },
     });
 
     if (!account) {
@@ -181,14 +161,42 @@ export class AccountsPayableService {
     return account;
   }
 
-  async getMonthlyReport(
-    year?: string,
-    category?: string,
-    status?: string,
-    page = 1,
-    limit = 12
-  ) {
-    // Filtro opcional de ano
+  /**
+   * NOVO: busca detalhada por mês/ano para exportação (lista de contas + totais)
+   */
+  async findForExportDetailed(year: number, month: number, category?: string, status?: string) {
+    const where: Prisma.AccountPayableWhereInput = {
+      dueDate: {
+        gte: new Date(year, month - 1, 1, 0, 0, 0, 0),
+        lte: new Date(year, month, 0, 23, 59, 59, 999),
+      },
+    };
+
+    if (category && category !== 'TODAS') where.category = category;
+    if (status && status !== 'TODOS') where.status = status;
+
+    const accounts = await this.prisma.accountPayable.findMany({
+      where,
+      orderBy: { dueDate: 'asc' },
+      include: { payments: true },
+    });
+
+    const totals = accounts.reduce(
+      (acc, a) => {
+        const paidSum = (a.payments || []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+        acc.total += Number(a.value);
+        acc.paid += paidSum;
+        acc.pending += Math.max(Number(a.value) - paidSum, 0);
+        acc.count += 1;
+        return acc;
+      },
+      { count: 0, total: 0, paid: 0, pending: 0 }
+    );
+
+    return { accounts, totals };
+  }
+
+  async getMonthlyReport(year?: string, category?: string, status?: string, page = 1, limit = 12) {
     const where: Prisma.AccountPayableWhereInput = {};
     if (year) {
       where.dueDate = {
@@ -196,72 +204,46 @@ export class AccountsPayableService {
         lte: new Date(`${year}-12-31T23:59:59.999Z`),
       };
     }
-    if (category && category !== 'TODAS') {
-      where.category = category;
-    }
-    if (status && status !== 'TODOS') {
-      where.status = status;
-    }
+    if (category && category !== 'TODAS') where.category = category;
+    if (status && status !== 'TODOS') where.status = status;
 
-    // Busca os registros já filtrando se necessário
     const accounts = await this.prisma.accountPayable.findMany({
       where,
       include: { payments: true },
       orderBy: { dueDate: 'asc' },
     });
 
-    // Agrupa por mês
     const monthsMap = new Map<string, any>();
-
     accounts.forEach(account => {
       const month = format(new Date(account.dueDate), 'yyyy-MM');
       if (!monthsMap.has(month)) {
-        monthsMap.set(month, {
-          month,
-          total: 0,
-          paid: 0,
-          pending: 0,
-          count: 0,
-        });
+        monthsMap.set(month, { month, total: 0, paid: 0, pending: 0, count: 0 });
       }
       const data = monthsMap.get(month);
 
       data.total += Number(account.value);
       data.count += 1;
 
-      // Verifica o quanto foi pago
       const paidSum = account.payments.reduce((sum, p) => sum + Number(p.amount), 0);
       data.paid += paidSum;
 
-      // Pendente = valor da conta - o que já foi pago
       data.pending += Math.max(Number(account.value) - paidSum, 0);
 
       monthsMap.set(month, data);
     });
 
-    // Transforma o Map em array ordenado
     const allMonths = Array.from(monthsMap.values()).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Bloco de paginação:
     const total = allMonths.length;
     const totalPages = Math.ceil(total / limit);
     const currentPage = Number(page) || 1;
     const start = (currentPage - 1) * limit;
     const paginatedData = allMonths.slice(start, start + limit);
 
-    // Retorna no formato esperado pelo frontend
-    return {
-      data: paginatedData,
-      total,
-      totalPages,
-      currentPage,
-    };
+    return { data: paginatedData, total, totalPages, currentPage };
   }
 
-  async update(
-    id: number,
-    updateAccountsPayableDto: UpdateAccountsPayableDto
-  ) {
+  async update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto) {
     const existingAccount = await this.prisma.accountPayable.findUnique({
       where: { id },
       include: { payments: true },
@@ -278,12 +260,7 @@ export class AccountsPayableService {
       dataToUpdate.dueDate = d;
     }
 
-    const {
-      paymentAmount, // string ou number vindo do front
-      bankAccount,
-      paidAt,
-      ...accountFields
-    } = dataToUpdate;
+    const { paymentAmount, bankAccount, paidAt, ...accountFields } = dataToUpdate;
 
     return await this.prisma.$transaction(async (prisma) => {
       const updatedAccount = await prisma.accountPayable.update({
@@ -291,61 +268,34 @@ export class AccountsPayableService {
         data: accountFields,
       });
 
-      const paymentsSoFar = await prisma.payment.findMany({
-        where: { accountId: id },
-      });
+      const paymentsSoFar = await prisma.payment.findMany({ where: { accountId: id } });
       let totalPaid = paymentsSoFar.reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
-      const paymentDate = paidAt
-        ? new Date(paidAt)
-        : new Date();
+      const paymentDate = paidAt ? new Date(paidAt) : new Date();
 
       if (paymentAmount) {
-        const raw = typeof paymentAmount === 'string'
-          ? paymentAmount.replace(',', '.')
-          : String(paymentAmount);
+        const raw = typeof paymentAmount === 'string' ? paymentAmount.replace(',', '.') : String(paymentAmount);
         const parsed = parseFloat(raw);
         if (!isNaN(parsed) && parsed > 0) {
           const exists = await prisma.payment.findFirst({
-            where: {
-              accountId: id,
-              amount: parsed,
-              paidAt: paymentDate,
-            },
+            where: { accountId: id, amount: parsed, paidAt: paymentDate },
           });
           if (!exists) {
             await prisma.payment.create({
-              data: {
-                accountId: id,
-                paidAt: paymentDate,
-                amount: parsed,
-                bankAccount: bankAccount ?? null,
-              },
+              data: { accountId: id, paidAt: paymentDate, amount: parsed, bankAccount: bankAccount ?? null },
             });
             totalPaid += parsed;
           }
         }
-      }
-      else if (
-        prevStatus !== 'PAGO' &&
-        updateAccountsPayableDto.status === 'PAGO'
-      ) {
+      } else if (prevStatus !== 'PAGO' && updateAccountsPayableDto.status === 'PAGO') {
         const remaining = updatedAccount.value - totalPaid;
         if (remaining > 0) {
           const exists = await prisma.payment.findFirst({
-            where: {
-              accountId: id,
-              amount: remaining,
-            },
+            where: { accountId: id, amount: remaining },
           });
           if (!exists) {
             await prisma.payment.create({
-              data: {
-                accountId: id,
-                paidAt: paymentDate,
-                amount: remaining,
-                bankAccount: bankAccount ?? null,
-              },
+              data: { accountId: id, paidAt: paymentDate, amount: remaining, bankAccount: bankAccount ?? null },
             });
             totalPaid += remaining;
           }
@@ -353,10 +303,7 @@ export class AccountsPayableService {
       }
 
       if (totalPaid >= updatedAccount.value && updatedAccount.status !== 'PAGO') {
-        await prisma.accountPayable.update({
-          where: { id },
-          data: { status: 'PAGO' },
-        });
+        await prisma.accountPayable.update({ where: { id }, data: { status: 'PAGO' } });
       }
 
       if (
@@ -388,37 +335,18 @@ export class AccountsPayableService {
 
   async remove(id: number) {
     await this.findOne(id);
-
-    await this.prisma.payment.deleteMany({
-      where: { accountId: id },
-    });
-
-    return this.prisma.accountPayable.delete({
-      where: { id },
-    });
+    await this.prisma.payment.deleteMany({ where: { accountId: id } });
+    return this.prisma.accountPayable.delete({ where: { id } });
   }
 
   async registerPayment(accountId: number, paidAt: Date) {
-    const account = await this.prisma.accountPayable.findUnique({
-      where: { id: accountId },
-    });
-
-    if (!account) {
-      throw new NotFoundException('Conta a pagar não encontrada.');
-    }
+    const account = await this.prisma.accountPayable.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Conta a pagar não encontrada.');
 
     if (account.status !== 'PAGO') {
-      await this.prisma.accountPayable.update({
-        where: { id: accountId },
-        data: { status: 'PAGO' },
-      });
+      await this.prisma.accountPayable.update({ where: { id: accountId }, data: { status: 'PAGO' } });
     }
 
-    return this.prisma.payment.create({
-      data: {
-        accountId,
-        paidAt,
-      },
-    });
+    return this.prisma.payment.create({ data: { accountId, paidAt } });
   }
 }

@@ -5,10 +5,10 @@ export declare class PaymentsService {
     findByAccountId(accountId: number): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }[]>;
     create(data: {
         accountId: number;
@@ -18,10 +18,10 @@ export declare class PaymentsService {
     }): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
     update(id: number, data: {
         paidAt?: Date;
@@ -30,17 +30,17 @@ export declare class PaymentsService {
     }): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
     remove(id: number): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
 }

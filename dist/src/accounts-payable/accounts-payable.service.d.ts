@@ -16,15 +16,15 @@ export declare class AccountsPayableService {
     create(createAccountsPayableDto: CreateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -34,23 +34,23 @@ export declare class AccountsPayableService {
             payments: {
                 id: number;
                 createdAt: Date;
-                bankAccount: string | null;
-                paidAt: Date;
                 accountId: number;
+                paidAt: Date;
                 amount: number | null;
+                bankAccount: string | null;
             }[];
         } & {
             id: number;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             category: string;
-            status: string;
             value: number;
             dueDate: Date;
+            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
+            createdAt: Date;
+            updatedAt: Date;
             isRecurring: boolean;
             recurringUntil: Date | null;
             recurringSourceId: number | null;
@@ -61,26 +61,59 @@ export declare class AccountsPayableService {
         payments: {
             id: number;
             createdAt: Date;
-            bankAccount: string | null;
-            paidAt: Date;
             accountId: number;
+            paidAt: Date;
             amount: number | null;
+            bankAccount: string | null;
         }[];
     } & {
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
+    }>;
+    findForExportDetailed(year: number, month: number, category?: string, status?: string): Promise<{
+        accounts: ({
+            payments: {
+                id: number;
+                createdAt: Date;
+                accountId: number;
+                paidAt: Date;
+                amount: number | null;
+                bankAccount: string | null;
+            }[];
+        } & {
+            id: number;
+            name: string;
+            category: string;
+            value: number;
+            dueDate: Date;
+            status: string;
+            installmentType: string;
+            installments: number | null;
+            currentInstallment: number | null;
+            createdAt: Date;
+            updatedAt: Date;
+            isRecurring: boolean;
+            recurringUntil: Date | null;
+            recurringSourceId: number | null;
+        })[];
+        totals: {
+            count: number;
+            total: number;
+            paid: number;
+            pending: number;
+        };
     }>;
     getMonthlyReport(year?: string, category?: string, status?: string, page?: number, limit?: number): Promise<{
         data: any[];
@@ -91,15 +124,15 @@ export declare class AccountsPayableService {
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -107,15 +140,15 @@ export declare class AccountsPayableService {
     remove(id: number): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -123,10 +156,10 @@ export declare class AccountsPayableService {
     registerPayment(accountId: number, paidAt: Date): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
 }
 export {};

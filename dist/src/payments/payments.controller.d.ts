@@ -6,18 +6,18 @@ export declare class PaymentsController {
     findByAccountId(accountId: string): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }[]>;
     createPayment(body: CreatePaymentDto): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
     updatePayment(id: number, body: {
         paidAt?: string;
@@ -26,17 +26,17 @@ export declare class PaymentsController {
     }): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
     removePayment(id: number): Promise<{
         id: number;
         createdAt: Date;
-        bankAccount: string | null;
-        paidAt: Date;
         accountId: number;
+        paidAt: Date;
         amount: number | null;
+        bankAccount: string | null;
     }>;
 }

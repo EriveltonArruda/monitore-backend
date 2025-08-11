@@ -11,19 +11,24 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AccountsPayableController = void 0;
 const common_1 = require("@nestjs/common");
 const accounts_payable_service_1 = require("./accounts-payable.service");
 const create_accounts_payable_dto_1 = require("./dto/create-accounts-payable.dto");
 const update_accounts_payable_dto_1 = require("./dto/update-accounts-payable.dto");
+const pdfmake_1 = __importDefault(require("pdfmake"));
+const path_1 = require("path");
 let AccountsPayableController = class AccountsPayableController {
     accountsPayableService;
     constructor(accountsPayableService) {
         this.accountsPayableService = accountsPayableService;
     }
-    create(createAccountsPayableDto) {
-        return this.accountsPayableService.create(createAccountsPayableDto);
+    create(dto) {
+        return this.accountsPayableService.create(dto);
     }
     findAll(page, limit, month, year, status, category, search) {
         return this.accountsPayableService.findAll({
@@ -36,14 +41,183 @@ let AccountsPayableController = class AccountsPayableController {
             search: search || '',
         });
     }
-    findOne(id) {
-        return this.accountsPayableService.findOne(id);
-    }
     async getMonthlyReport(year, category, status, page, limit) {
         return this.accountsPayableService.getMonthlyReport(year, category, status, Number(page) || 1, Number(limit) || 12);
     }
-    update(id, updateAccountsPayableDto) {
-        return this.accountsPayableService.update(id, updateAccountsPayableDto);
+    async exportListPdf(res, month, year, status, category, search) {
+        const { data: accounts } = await this.accountsPayableService.findAll({
+            page: 1,
+            limit: 100000,
+            month: month ? Number(month) : undefined,
+            year: year ? Number(year) : undefined,
+            status: status && status !== 'TODOS' ? status : undefined,
+            category: category && category !== 'TODAS' ? category : undefined,
+            search: search || '',
+        });
+        const fonts = {
+            Roboto: {
+                normal: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
+                bold: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Bold.ttf'),
+                italics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Italic.ttf'),
+                bolditalics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-BoldItalic.ttf'),
+            },
+        };
+        const printer = new pdfmake_1.default(fonts);
+        const brl = (n) => `R$ ${Number(n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        const fdate = (d) => (d ? new Date(d).toLocaleDateString('pt-BR') : '-');
+        const installmentLabel = (acc) => acc.installmentType === 'PARCELADO' && acc.installments && acc.currentInstallment
+            ? `${acc.currentInstallment}/${acc.installments}`
+            : 'Única';
+        const tableBody = [
+            [
+                { text: 'Nome', style: 'tableHeader' },
+                { text: 'Categoria', style: 'tableHeader' },
+                { text: 'Valor', style: 'tableHeader' },
+                { text: 'Vencimento', style: 'tableHeader' },
+                { text: 'Status', style: 'tableHeader' },
+                { text: 'Parcela', style: 'tableHeader' },
+            ],
+            ...accounts.map((a) => [
+                a.name ?? '-',
+                a.category ?? '-',
+                brl(a.value),
+                fdate(a.dueDate),
+                a.status ?? '-',
+                installmentLabel(a),
+            ]),
+        ];
+        const filtersLine = [
+            month ? `Mês: ${month}` : 'Mês: Todos',
+            year ? `Ano: ${year}` : 'Ano: Todos',
+            status && status !== 'TODOS' ? `Status: ${status}` : 'Status: Todos',
+            category && category !== 'TODAS' ? `Categoria: ${category}` : 'Categoria: Todas',
+            search ? `Busca: "${search}"` : '',
+        ]
+            .filter(Boolean)
+            .join(' | ');
+        const docDefinition = {
+            content: [
+                { text: 'Relatório - Contas a Pagar', style: 'header', margin: [0, 0, 0, 6] },
+                { text: filtersLine, fontSize: 9, margin: [0, 0, 0, 10] },
+                {
+                    table: { headerRows: 1, widths: ['*', '*', 'auto', 'auto', 'auto', 'auto'], body: tableBody },
+                    layout: 'lightHorizontalLines',
+                },
+                {
+                    text: `\nGerado em ${new Date().toLocaleString('pt-BR')}`,
+                    fontSize: 9,
+                    alignment: 'right',
+                    margin: [0, 10, 0, 0],
+                },
+            ],
+            styles: {
+                header: { fontSize: 16, bold: true, alignment: 'center' },
+                tableHeader: { bold: true, fillColor: '#eeeeee' },
+            },
+            defaultStyle: { font: 'Roboto' },
+            pageMargins: [20, 30, 20, 30],
+        };
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks = [];
+        pdfDoc.on('data', (c) => chunks.push(c));
+        pdfDoc.on('end', () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="relatorio-contas-a-pagar.pdf"`,
+                'Content-Length': pdfBuffer.length,
+            });
+            res.end(pdfBuffer);
+        });
+        pdfDoc.end();
+    }
+    async exportOnePdf(id, res) {
+        const account = await this.accountsPayableService.findOne(id);
+        const fonts = {
+            Roboto: {
+                normal: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
+                bold: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Bold.ttf'),
+                italics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Italic.ttf'),
+                bolditalics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-BoldItalic.ttf'),
+            },
+        };
+        const printer = new pdfmake_1.default(fonts);
+        const brl = (n) => `R$ ${Number(n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        const fdate = (d) => (d ? new Date(d).toLocaleString('pt-BR') : '-');
+        const parcela = account.installmentType === 'PARCELADO' && account.installments && account.currentInstallment
+            ? `${account.currentInstallment}/${account.installments}`
+            : 'Única';
+        const details = [
+            [{ text: 'Nome', bold: true }, account.name ?? '-'],
+            [{ text: 'Categoria', bold: true }, account.category ?? '-'],
+            [{ text: 'Valor', bold: true }, brl(account.value)],
+            [{ text: 'Vencimento', bold: true }, fdate(account.dueDate)],
+            [{ text: 'Status', bold: true }, account.status ?? '-'],
+            [{ text: 'Parcela', bold: true }, parcela],
+            [{ text: 'Criado em', bold: true }, fdate(account.createdAt)],
+            [{ text: 'Atualizado em', bold: true }, fdate(account.updatedAt)],
+        ];
+        const paymentsBody = [
+            [
+                { text: 'Data de Pagamento', style: 'tableHeader' },
+                { text: 'Valor', style: 'tableHeader' },
+                { text: 'Conta Bancária', style: 'tableHeader' },
+            ],
+            ...(Array.isArray(account.payments) && account.payments.length > 0
+                ? account.payments.map((p) => [
+                    fdate(p.paidAt),
+                    p.amount != null ? brl(p.amount) : '-',
+                    p.bankAccount ?? '-',
+                ])
+                : [[{ text: 'Sem pagamentos registrados', colSpan: 3, italics: true }, {}, {}]]),
+        ];
+        const docDefinition = {
+            content: [
+                { text: 'Conta a Pagar - Detalhes', style: 'header', margin: [0, 0, 0, 10] },
+                {
+                    table: { widths: ['auto', '*'], body: details },
+                    layout: 'lightHorizontalLines',
+                    margin: [0, 0, 0, 14],
+                },
+                { text: 'Pagamentos', style: 'subheader', margin: [0, 0, 0, 6] },
+                {
+                    table: { headerRows: 1, widths: ['auto', 'auto', '*'], body: paymentsBody },
+                    layout: 'lightHorizontalLines',
+                },
+                {
+                    text: `\nGerado em ${new Date().toLocaleString('pt-BR')}`,
+                    fontSize: 9,
+                    alignment: 'right',
+                    margin: [0, 10, 0, 0],
+                },
+            ],
+            styles: {
+                header: { fontSize: 16, bold: true, alignment: 'center' },
+                subheader: { fontSize: 12, bold: true },
+                tableHeader: { bold: true, fillColor: '#eeeeee' },
+            },
+            defaultStyle: { font: 'Roboto' },
+            pageMargins: [20, 30, 20, 30],
+        };
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks = [];
+        pdfDoc.on('data', (c) => chunks.push(c));
+        pdfDoc.on('end', () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="conta-${id}.pdf"`,
+                'Content-Length': pdfBuffer.length,
+            });
+            res.end(pdfBuffer);
+        });
+        pdfDoc.end();
+    }
+    findOne(id) {
+        return this.accountsPayableService.findOne(id);
+    }
+    update(id, dto) {
+        return this.accountsPayableService.update(id, dto);
     }
     remove(id) {
         return this.accountsPayableService.remove(id);
@@ -71,13 +245,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", void 0)
-], AccountsPayableController.prototype, "findOne", null);
-__decorate([
     (0, common_1.Get)('reports/month'),
     __param(0, (0, common_1.Query)('year')),
     __param(1, (0, common_1.Query)('category')),
@@ -88,6 +255,33 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], AccountsPayableController.prototype, "getMonthlyReport", null);
+__decorate([
+    (0, common_1.Get)('export-pdf'),
+    __param(0, (0, common_1.Res)()),
+    __param(1, (0, common_1.Query)('month')),
+    __param(2, (0, common_1.Query)('year')),
+    __param(3, (0, common_1.Query)('status')),
+    __param(4, (0, common_1.Query)('category')),
+    __param(5, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AccountsPayableController.prototype, "exportListPdf", null);
+__decorate([
+    (0, common_1.Get)(':id/export-pdf'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], AccountsPayableController.prototype, "exportOnePdf", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], AccountsPayableController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
