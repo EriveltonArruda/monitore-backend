@@ -24,7 +24,6 @@ const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const pdfmake_1 = __importDefault(require("pdfmake"));
-const path_2 = require("path");
 const exceljs_1 = __importDefault(require("exceljs"));
 let ProductsController = class ProductsController {
     productsService;
@@ -38,11 +37,11 @@ let ProductsController = class ProductsController {
         const products = await this.productsService.findAllUnpaginatedFull();
         const fonts = {
             Roboto: {
-                normal: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
-                bold: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Bold.ttf'),
-                italics: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-Italic.ttf'),
-                bolditalics: (0, path_2.join)(process.cwd(), 'fonts', 'Roboto-BoldItalic.ttf')
-            }
+                normal: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
+                bold: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Bold.ttf'),
+                italics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-Italic.ttf'),
+                bolditalics: (0, path_1.join)(process.cwd(), 'fonts', 'Roboto-BoldItalic.ttf'),
+            },
         };
         const printer = new pdfmake_1.default(fonts);
         const tableBody = [
@@ -51,15 +50,17 @@ let ProductsController = class ProductsController {
                 { text: 'Categoria', style: 'tableHeader' },
                 { text: 'Estoque', style: 'tableHeader' },
                 { text: 'Preço Custo', style: 'tableHeader' },
-                { text: 'Fornecedor', style: 'tableHeader' }
+                { text: 'Fornecedor', style: 'tableHeader' },
             ],
             ...products.map((p) => [
                 p.name ?? '-',
                 p.category?.name ?? '-',
                 p.stockQuantity ?? '-',
-                p.costPrice != null ? `R$ ${Number(p.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
-                p.supplier?.name ?? '-'
-            ])
+                p.costPrice != null
+                    ? `R$ ${Number(p.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : '-',
+                p.supplier?.name ?? '-',
+            ]),
         ];
         const docDefinition = {
             content: [
@@ -68,7 +69,7 @@ let ProductsController = class ProductsController {
                     table: {
                         headerRows: 1,
                         widths: ['*', '*', 'auto', 'auto', '*'],
-                        body: tableBody
+                        body: tableBody,
                     },
                     layout: 'lightHorizontalLines',
                 },
@@ -76,29 +77,20 @@ let ProductsController = class ProductsController {
                     text: `\nData de geração: ${new Date().toLocaleString('pt-BR')}`,
                     fontSize: 9,
                     alignment: 'right',
-                    margin: [0, 10, 0, 0]
+                    margin: [0, 10, 0, 0],
                 },
                 {
                     text: 'Gerado pelo Sistema Monitore',
                     fontSize: 9,
                     alignment: 'center',
-                    margin: [0, 20, 0, 0]
-                }
+                    margin: [0, 20, 0, 0],
+                },
             ],
             styles: {
-                header: {
-                    fontSize: 16,
-                    bold: true,
-                    alignment: 'center'
-                },
-                tableHeader: {
-                    bold: true,
-                    fillColor: '#eeeeee'
-                }
+                header: { fontSize: 16, bold: true, alignment: 'center' },
+                tableHeader: { bold: true, fillColor: '#eeeeee' },
             },
-            defaultStyle: {
-                font: 'Roboto'
-            }
+            defaultStyle: { font: 'Roboto' },
         };
         const pdfDoc = printer.createPdfKitDocument(docDefinition);
         const chunks = [];
@@ -128,7 +120,7 @@ let ProductsController = class ProductsController {
             'Preço de Custo',
             'Status',
             'Localização',
-            'Data Cadastro'
+            'Data Cadastro',
         ];
         const workbook = new exceljs_1.default.Workbook();
         const worksheet = workbook.addWorksheet('Produtos');
@@ -144,7 +136,9 @@ let ProductsController = class ProductsController {
                 p.supplier?.name ?? '-',
                 p.stockQuantity ?? '-',
                 p.minStockQuantity ?? '-',
-                p.costPrice != null ? Number(p.costPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-',
+                p.costPrice != null
+                    ? Number(p.costPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                    : '-',
                 p.status ?? '-',
                 p.location ?? '-',
                 p.createdAt ? new Date(p.createdAt).toLocaleString('pt-BR') : '-',
@@ -192,6 +186,9 @@ let ProductsController = class ProductsController {
         const imageUrl = `/uploads/products/${file.filename}`;
         await this.productsService.updateMainImageUrl(Number(id), imageUrl);
         return { imageUrl };
+    }
+    async deleteMainImage(id) {
+        return this.productsService.removeMainImage(id);
     }
     update(id, updateProductDto) {
         return this.productsService.update(id, updateProductDto);
@@ -255,14 +252,14 @@ __decorate([
             filename: (req, file, cb) => {
                 const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
                 cb(null, unique + (0, path_1.extname)(file.originalname));
-            }
+            },
         }),
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.startsWith('image/')) {
                 return cb(new common_1.BadRequestException('Arquivo precisa ser uma imagem'), false);
             }
             cb(null, true);
-        }
+        },
     })),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.UploadedFile)()),
@@ -270,6 +267,13 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "uploadProductImage", null);
+__decorate([
+    (0, common_1.Delete)(':id/main-image'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "deleteMainImage", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

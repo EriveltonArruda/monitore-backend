@@ -3,6 +3,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import * as fs from 'fs/promises';
+import { join } from 'path';
 
 interface FindAllProductsParams {
   search?: string;
@@ -37,14 +39,12 @@ export class ProductsService {
 
     if (search) {
       andConditions.push({
-        OR: [
-          { name: { contains: search } },
-          { sku: { contains: search } }
-        ]
+        OR: [{ name: { contains: search } }, { sku: { contains: search } }],
       });
     }
-    if (categoryId) { andConditions.push({ categoryId }); }
-    if (status) { andConditions.push({ status: status.toUpperCase() }); }
+    if (categoryId) andConditions.push({ categoryId });
+    if (status) andConditions.push({ status: status.toUpperCase() });
+
     if (stockLevel === 'low') {
       andConditions.push({ stockQuantity: { lte: this.prisma.product.fields.minStockQuantity } });
     } else if (stockLevel === 'normal') {
@@ -56,31 +56,22 @@ export class ProductsService {
     const [products, total] = await this.prisma.$transaction([
       this.prisma.product.findMany({
         where,
-        include: {
-          category: true,
-          supplier: true,
-        },
+        include: { category: true, supplier: true },
         orderBy: { name: 'asc' },
-        skip: skip,
+        skip,
         take: limit,
       }),
       this.prisma.product.count({ where }),
     ]);
 
-    return {
-      data: products,
-      total,
-    };
+    return { data: products, total };
   }
 
-  // Método para PDF e Excel: retorna todos os produtos completos (inclui category e supplier)
+  // Para PDF/Excel: retorna todos os produtos com category e supplier
   findAllUnpaginatedFull() {
     return this.prisma.product.findMany({
       orderBy: { name: 'asc' },
-      include: {
-        category: true,
-        supplier: true,
-      },
+      include: { category: true, supplier: true },
     });
   }
 
@@ -103,6 +94,31 @@ export class ProductsService {
     });
   }
 
+  async removeMainImage(id: number) {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) throw new NotFoundException('Produto não encontrado');
+
+    const current = product.mainImageUrl; // ex: /uploads/products/arquivo.jpg
+
+    // 1) Zera no banco
+    await this.prisma.product.update({
+      where: { id },
+      data: { mainImageUrl: null },
+    });
+
+    // 2) Tenta excluir o arquivo físico (se for do diretório esperado)
+    if (current && current.startsWith('/uploads/products/')) {
+      const absPath = join(process.cwd(), current.replace(/^\//, '')); // uploads/products/...
+      try {
+        await fs.unlink(absPath);
+      } catch {
+        // se já não existir, ignoramos
+      }
+    }
+
+    return { ok: true };
+  }
+
   async update(id: number, updateProductDto: UpdateProductDto) {
     await this.findOne(id);
     const { categoryId, supplierId, ...productData } = updateProductDto;
@@ -120,17 +136,12 @@ export class ProductsService {
   async remove(id: number) {
     await this.findOne(id);
     try {
-      return await this.prisma.product.delete({
-        where: { id },
-      });
-    } catch (error) {
-      console.error(error)
-      if (
-        error.code === 'P2003' ||
-        error.code === 'P2014'
-      ) {
+      return await this.prisma.product.delete({ where: { id } });
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'P2003' || error.code === 'P2014') {
         throw new BadRequestException(
-          'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.'
+          'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.',
         );
       }
       throw error;

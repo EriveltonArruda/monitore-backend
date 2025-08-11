@@ -142,6 +142,9 @@ export declare class ProductsService {
         categoryId: number | null;
         supplierId: number | null;
     }>;
+    removeMainImage(id: number): Promise<{
+        ok: boolean;
+    }>;
     update(id: number, updateProductDto: UpdateProductDto): Promise<{
         id: number;
         name: string;

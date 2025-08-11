@@ -121,6 +121,9 @@ export declare class ProductsController {
     uploadProductImage(id: number, file: Express.Multer.File): Promise<{
         imageUrl: string;
     }>;
+    deleteMainImage(id: number): Promise<{
+        ok: boolean;
+    }>;
     update(id: number, updateProductDto: UpdateProductDto): Promise<{
         id: number;
         name: string;
