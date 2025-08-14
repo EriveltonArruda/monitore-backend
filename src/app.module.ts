@@ -13,6 +13,7 @@ import { AccountsPayableModule } from './accounts-payable/accounts-payable.modul
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
+import { TravelExpensesModule } from './travel-expenses/travel-expenses.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PaymentsModule } from './payments/payments.module';
     UsersModule,
     AuthModule,
     PaymentsModule,
+    TravelExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

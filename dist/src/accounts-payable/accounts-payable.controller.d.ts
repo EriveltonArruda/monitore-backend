@@ -8,15 +8,15 @@ export declare class AccountsPayableController {
     create(dto: CreateAccountsPayableDto): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -34,15 +34,15 @@ export declare class AccountsPayableController {
         } & {
             id: number;
             name: string;
+            createdAt: Date;
+            updatedAt: Date;
             category: string;
+            status: string;
             value: number;
             dueDate: Date;
-            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
-            createdAt: Date;
-            updatedAt: Date;
             isRecurring: boolean;
             recurringUntil: Date | null;
             recurringSourceId: number | null;
@@ -69,15 +69,15 @@ export declare class AccountsPayableController {
     } & {
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -85,15 +85,15 @@ export declare class AccountsPayableController {
     update(id: number, dto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -101,15 +101,15 @@ export declare class AccountsPayableController {
     remove(id: number): Promise<{
         id: number;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         category: string;
+        status: string;
         value: number;
         dueDate: Date;
-        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
-        createdAt: Date;
-        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;

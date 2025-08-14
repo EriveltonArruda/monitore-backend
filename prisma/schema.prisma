@@ -147,3 +147,43 @@ model ProductImage {
   product   Product @relation(fields: [productId], references: [id])
   productId Int
 }
+
+model TravelExpense {
+  id               Int       @id @default(autoincrement())
+  employeeName     String?
+  department       String?
+  description      String?
+  category         String    @default("OUTROS")   // TRANSPORTE | HOSPEDAGEM | ALIMENTACAO | OUTROS
+  city             String?
+  state            String?
+  expenseDate      DateTime?
+  currency         String?   @default("BRL")
+
+  // valores em CENTAVOS para evitar arredondamento no SQLite
+  amountCents      Int
+  reimbursedCents  Int       @default(0)
+
+  status           String    @default("PENDENTE") // PENDENTE | PARCIAL | REEMBOLSADO
+  receiptUrl       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  reimbursements   TravelReimbursement[]
+
+  @@index([expenseDate])
+  @@index([status, category])
+  @@index([employeeName])
+}
+
+model TravelReimbursement {
+  id               Int            @id @default(autoincrement())
+  travelExpenseId  Int
+  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+
+  // valor do reembolso em CENTAVOS
+  amountCents      Int
+  reimbursedAt     DateTime       @default(now())
+  bankAccount      String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+}
