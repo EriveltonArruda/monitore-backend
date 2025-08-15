@@ -55,6 +55,24 @@ let TravelExpensesController = class TravelExpensesController {
     deleteReimbursement(id, reimbursementId) {
         return this.service.deleteReimbursement(id, reimbursementId);
     }
+    listAdvances(id) {
+        return this.service.listAdvances(id);
+    }
+    addAdvance(id, dto) {
+        return this.service.addAdvance(id, dto);
+    }
+    deleteAdvance(id, advanceId) {
+        return this.service.deleteAdvance(id, advanceId);
+    }
+    listReturns(id) {
+        return this.service.listReturns(id);
+    }
+    addReturn(id, dto) {
+        return this.service.addReturn(id, dto);
+    }
+    deleteReturn(id, returnId) {
+        return this.service.deleteReturn(id, returnId);
+    }
 };
 exports.TravelExpensesController = TravelExpensesController;
 __decorate([
@@ -122,6 +140,52 @@ __decorate([
     __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", void 0)
 ], TravelExpensesController.prototype, "deleteReimbursement", null);
+__decorate([
+    (0, common_1.Get)(':id/advances'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "listAdvances", null);
+__decorate([
+    (0, common_1.Post)(':id/advances'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "addAdvance", null);
+__decorate([
+    (0, common_1.Delete)(':id/advances/:advanceId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('advanceId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "deleteAdvance", null);
+__decorate([
+    (0, common_1.Get)(':id/returns'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "listReturns", null);
+__decorate([
+    (0, common_1.Post)(':id/returns'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "addReturn", null);
+__decorate([
+    (0, common_1.Delete)(':id/returns/:returnId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('returnId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", void 0)
+], TravelExpensesController.prototype, "deleteReturn", null);
 exports.TravelExpensesController = TravelExpensesController = __decorate([
     (0, common_1.Controller)('travel-expenses'),
     __metadata("design:paramtypes", [travel_expenses_service_1.TravelExpensesService])

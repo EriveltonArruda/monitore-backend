@@ -19,7 +19,7 @@ let TravelExpensesService = class TravelExpensesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async create(dto) {
+    async createExpense(dto) {
         const created = await this.prisma.travelExpense.create({
             data: {
                 employeeName: dto.employeeName ?? null,
@@ -28,10 +28,12 @@ let TravelExpensesService = class TravelExpensesService {
                 category: dto.category ?? 'OUTROS',
                 city: dto.city ?? null,
                 state: dto.state ?? null,
-                expenseDate: dto.expenseDate ? new Date(dto.expenseDate) : null,
+                expenseDate: dto.expenseDate ? new Date(dto.expenseDate) : new Date(),
                 currency: dto.currency ?? 'BRL',
                 amountCents: toCents(dto.amount),
                 receiptUrl: dto.receiptUrl ?? null,
+                status: 'PENDENTE',
+                reimbursedCents: 0,
             },
         });
         return {
@@ -39,6 +41,52 @@ let TravelExpensesService = class TravelExpensesService {
             amount: fromCents(created.amountCents),
             reimbursedAmount: fromCents(created.reimbursedCents),
         };
+    }
+    async create(dto) {
+        return this.createExpense(dto);
+    }
+    async getTotals(expenseId, tx = this.prisma) {
+        const [advSum, retSum, exp] = await Promise.all([
+            tx.travelAdvance.aggregate({
+                where: { travelExpenseId: expenseId },
+                _sum: { amountCents: true },
+            }),
+            tx.travelReturn.aggregate({
+                where: { travelExpenseId: expenseId },
+                _sum: { amountCents: true },
+            }),
+            tx.travelExpense.findUnique({ where: { id: expenseId } }),
+        ]);
+        if (!exp)
+            throw new common_1.NotFoundException('Despesa não encontrada');
+        const advances = advSum._sum.amountCents ?? 0;
+        const returns = retSum._sum.amountCents ?? 0;
+        return {
+            amountCents: exp.amountCents,
+            reimbursedCents: exp.reimbursedCents,
+            advancesCents: advances,
+            returnsCents: returns,
+            status: exp.status,
+        };
+    }
+    computeStatus(amountCents, reimbursedCents, advancesCents, returnsCents) {
+        const dueToEmployee = amountCents - advancesCents - reimbursedCents;
+        const expectedReturn = dueToEmployee < 0 ? -dueToEmployee : 0;
+        const outstandingReturn = Math.max(0, expectedReturn - returnsCents);
+        if (dueToEmployee === 0 && outstandingReturn === 0)
+            return 'REEMBOLSADO';
+        if (reimbursedCents === 0 && advancesCents === 0 && returnsCents === 0)
+            return 'PENDENTE';
+        return 'PARCIAL';
+    }
+    async recalcAndUpdateStatus(expenseId, tx = this.prisma) {
+        const t = await this.getTotals(expenseId, tx);
+        const status = this.computeStatus(t.amountCents, t.reimbursedCents, t.advancesCents, t.returnsCents);
+        await tx.travelExpense.update({
+            where: { id: expenseId },
+            data: { status },
+        });
+        return status;
     }
     async findAll(params = {}) {
         const { page = 1, pageSize = 10, month, year, status, category, search, } = params;
@@ -84,19 +132,49 @@ let TravelExpensesService = class TravelExpensesService {
             }),
             this.prisma.travelExpense.count({ where }),
         ]);
-        return {
-            data: rows.map((r) => ({
+        if (rows.length === 0) {
+            return { data: [], total };
+        }
+        const ids = rows.map(r => r.id);
+        const [advList, retList] = await this.prisma.$transaction([
+            this.prisma.travelAdvance.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+            this.prisma.travelReturn.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+        ]);
+        const advMap = new Map();
+        for (const a of advList) {
+            advMap.set(a.travelExpenseId, (advMap.get(a.travelExpenseId) ?? 0) + (a.amountCents ?? 0));
+        }
+        const retMap = new Map();
+        for (const r of retList) {
+            retMap.set(r.travelExpenseId, (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0));
+        }
+        const data = rows.map(r => {
+            const advancesCents = advMap.get(r.id) ?? 0;
+            const returnsCents = retMap.get(r.id) ?? 0;
+            return {
                 ...r,
                 amount: fromCents(r.amountCents),
                 reimbursedAmount: fromCents(r.reimbursedCents),
-            })),
-            total,
-        };
+                advancesAmount: fromCents(advancesCents),
+                returnsAmount: fromCents(returnsCents),
+            };
+        });
+        return { data, total };
     }
     async findOne(id) {
         const r = await this.prisma.travelExpense.findUnique({
             where: { id },
-            include: { reimbursements: { orderBy: { reimbursedAt: 'desc' } } },
+            include: {
+                reimbursements: { orderBy: { reimbursedAt: 'desc' } },
+                advances: true,
+                returns: true,
+            },
         });
         if (!r)
             throw new common_1.NotFoundException('Despesa não encontrada');
@@ -108,6 +186,8 @@ let TravelExpensesService = class TravelExpensesService {
                 ...x,
                 amount: fromCents(x.amountCents),
             })),
+            advances: r.advances.map((a) => ({ ...a, amount: fromCents(a.amountCents) })),
+            returns: r.returns.map((t) => ({ ...t, amount: fromCents(t.amountCents) })),
         };
     }
     async update(id, dto) {
@@ -128,6 +208,7 @@ let TravelExpensesService = class TravelExpensesService {
                 status: dto.status ?? undefined,
             },
         });
+        await this.recalcAndUpdateStatus(id);
         return {
             ...updated,
             amount: fromCents(updated.amountCents),
@@ -155,35 +236,26 @@ let TravelExpensesService = class TravelExpensesService {
         const amountCents = toCents(dto.amount);
         if (amountCents <= 0)
             throw new common_1.BadRequestException('Valor do reembolso deve ser maior que zero');
-        const remaining = exp.amountCents - exp.reimbursedCents;
-        if (amountCents > remaining) {
-            throw new common_1.BadRequestException(`Valor excede o restante a reembolsar (restante: ${fromCents(remaining)})`);
+        const totals = await this.getTotals(expenseId);
+        const maxReembolso = Math.max(0, totals.amountCents - totals.advancesCents - totals.reimbursedCents);
+        if (amountCents > maxReembolso) {
+            throw new common_1.BadRequestException(`Valor excede o restante a reembolsar (restante: ${fromCents(maxReembolso)})`);
         }
         const reimbursement = await this.prisma.$transaction(async (tx) => {
             const created = await tx.travelReimbursement.create({
                 data: {
                     travelExpenseId: expenseId,
                     amountCents,
-                    reimbursedAt: dto.reimbursedAt
-                        ? new Date(dto.reimbursedAt)
-                        : new Date(),
+                    reimbursedAt: dto.reimbursedAt ? new Date(dto.reimbursedAt) : new Date(),
                     bankAccount: dto.bankAccount ?? null,
                     notes: dto.notes ?? null,
                 },
             });
-            const newReimbursed = exp.reimbursedCents + amountCents;
-            const status = newReimbursed === exp.amountCents
-                ? 'REEMBOLSADO'
-                : newReimbursed > 0
-                    ? 'PARCIAL'
-                    : 'PENDENTE';
             await tx.travelExpense.update({
                 where: { id: expenseId },
-                data: {
-                    reimbursedCents: newReimbursed,
-                    status,
-                },
+                data: { reimbursedCents: exp.reimbursedCents + amountCents },
             });
+            await this.recalcAndUpdateStatus(expenseId, tx);
             return created;
         });
         return { ...reimbursement, amount: fromCents(reimbursement.amountCents) };
@@ -197,22 +269,91 @@ let TravelExpensesService = class TravelExpensesService {
             throw new common_1.NotFoundException('Reembolso não encontrado');
         await this.prisma.$transaction(async (tx) => {
             await tx.travelReimbursement.delete({ where: { id: reimbursementId } });
-            const exp = await tx.travelExpense.findUnique({
-                where: { id: expenseId },
-            });
-            const newReimbursed = Math.max(0, exp.reimbursedCents - rb.amountCents);
-            const status = newReimbursed === 0
-                ? 'PENDENTE'
-                : newReimbursed === exp.amountCents
-                    ? 'REEMBOLSADO'
-                    : 'PARCIAL';
+            const exp = await tx.travelExpense.findUnique({ where: { id: expenseId } });
+            const newReimbursed = Math.max(0, (exp?.reimbursedCents ?? 0) - rb.amountCents);
             await tx.travelExpense.update({
                 where: { id: expenseId },
+                data: { reimbursedCents: newReimbursed },
+            });
+            await this.recalcAndUpdateStatus(expenseId, tx);
+        });
+        return { deleted: true };
+    }
+    async listAdvances(expenseId) {
+        await this.ensureExists(expenseId);
+        const list = await this.prisma.travelAdvance.findMany({
+            where: { travelExpenseId: expenseId },
+            orderBy: { issuedAt: 'desc' },
+        });
+        return list.map((a) => ({ ...a, amount: fromCents(a.amountCents) }));
+    }
+    async addAdvance(expenseId, dto) {
+        await this.ensureExists(expenseId);
+        const amountCents = toCents(dto.amount);
+        if (amountCents <= 0)
+            throw new common_1.BadRequestException('Valor do adiantamento deve ser maior que zero');
+        const created = await this.prisma.$transaction(async (tx) => {
+            const adv = await tx.travelAdvance.create({
                 data: {
-                    reimbursedCents: newReimbursed,
-                    status,
+                    travelExpenseId: expenseId,
+                    amountCents,
+                    issuedAt: dto.issuedAt ? new Date(dto.issuedAt) : new Date(),
+                    method: dto.method ?? null,
+                    notes: dto.notes ?? null,
                 },
             });
+            await this.recalcAndUpdateStatus(expenseId, tx);
+            return adv;
+        });
+        return { ...created, amount: fromCents(created.amountCents) };
+    }
+    async deleteAdvance(expenseId, advanceId) {
+        await this.ensureExists(expenseId);
+        const adv = await this.prisma.travelAdvance.findUnique({ where: { id: advanceId } });
+        if (!adv || adv.travelExpenseId !== expenseId)
+            throw new common_1.NotFoundException('Adiantamento não encontrado');
+        await this.prisma.$transaction(async (tx) => {
+            await tx.travelAdvance.delete({ where: { id: advanceId } });
+            await this.recalcAndUpdateStatus(expenseId, tx);
+        });
+        return { deleted: true };
+    }
+    async listReturns(expenseId) {
+        await this.ensureExists(expenseId);
+        const list = await this.prisma.travelReturn.findMany({
+            where: { travelExpenseId: expenseId },
+            orderBy: { returnedAt: 'desc' },
+        });
+        return list.map((r) => ({ ...r, amount: fromCents(r.amountCents) }));
+    }
+    async addReturn(expenseId, dto) {
+        await this.ensureExists(expenseId);
+        const amountCents = toCents(dto.amount);
+        if (amountCents <= 0)
+            throw new common_1.BadRequestException('Valor da devolução deve ser maior que zero');
+        const created = await this.prisma.$transaction(async (tx) => {
+            const ret = await tx.travelReturn.create({
+                data: {
+                    travelExpenseId: expenseId,
+                    amountCents,
+                    returnedAt: dto.returnedAt ? new Date(dto.returnedAt) : new Date(),
+                    method: dto.method ?? null,
+                    notes: dto.notes ?? null,
+                },
+            });
+            await this.recalcAndUpdateStatus(expenseId, tx);
+            return ret;
+        });
+        return { ...created, amount: fromCents(created.amountCents) };
+    }
+    async deleteReturn(expenseId, returnId) {
+        await this.ensureExists(expenseId);
+        const ret = await this.prisma.travelReturn.findUnique({ where: { id: returnId } });
+        if (!ret || ret.travelExpenseId !== expenseId)
+            throw new common_1.NotFoundException('Devolução não encontrada');
+        await this.prisma.$transaction(async (tx) => {
+            await tx.travelReturn.delete({ where: { id: returnId } });
+            await this.recalcAndUpdateStatus(expenseId, tx);
         });
         return { deleted: true };
     }

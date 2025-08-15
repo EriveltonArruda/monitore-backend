@@ -18,7 +18,6 @@ model Product {
   status           String   @default("ATIVO")
   stockQuantity    Int
   minStockQuantity Int      @default(0)
-  // salePrice        Float   <<< Não uso mais
   costPrice        Float?
   location         String?
   mainImageUrl     String?
@@ -63,53 +62,45 @@ model AccountPayable {
   status   String   @default("A_PAGAR")
 
   installmentType    String @default("UNICA") // UNICA ou PARCELADO
-  installments       Int? // Total de parcelas (opcional para UNICA)
-  currentInstallment Int? // Número da parcela atual (opcional para UNICA)
+  installments       Int?
+  currentInstallment Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  isRecurring        Boolean   @default(false)  // Indica se a conta se repete mensalmente
-  recurringUntil     DateTime?                  // Até quando deve repetir
-  recurringSourceId  Int?                       // ID da conta original (se for uma cópia gerada)
+  isRecurring        Boolean   @default(false)
+  recurringUntil     DateTime?
+  recurringSourceId  Int?
   recurringSource     AccountPayable? @relation("RecurringLink", fields: [recurringSourceId], references: [id])
   recurringChildren   AccountPayable[] @relation("RecurringLink")
 
   payments Payment[]
-  
 }
 
 model Payment {
-  id        Int            @id @default(autoincrement())
-  accountId Int
-  account   AccountPayable @relation(fields: [accountId], references: [id])
-  paidAt    DateTime
-  amount    Float?
-  createdAt DateTime       @default(now())
+  id         Int            @id @default(autoincrement())
+  accountId  Int
+  account    AccountPayable @relation(fields: [accountId], references: [id])
+  paidAt     DateTime
+  amount     Float?
+  createdAt  DateTime       @default(now())
   bankAccount String?
 }
 
 // ========= MODELOS DE SUPORTE =========
-
-enum UserRole {
-  ADMIN
-  USER
-  MANAGER
-}
 
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String
   password  String
-  role      UserRole @default(USER)
-  modules   String? @default("")
+  role      String   @default("USER") // era enum UserRole; SQLite não suporta enum nativo
+  modules   String?  @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   movements StockMovement[]
 }
-
 
 model Category {
   id   Int    @id @default(autoincrement())
@@ -169,6 +160,8 @@ model TravelExpense {
   updatedAt        DateTime  @updatedAt
 
   reimbursements   TravelReimbursement[]
+  advances         TravelAdvance[]      // << novo
+  returns          TravelReturn[]       // << novo
 
   @@index([expenseDate])
   @@index([status, category])
@@ -186,4 +179,34 @@ model TravelReimbursement {
   bankAccount      String?
   notes            String?
   createdAt        DateTime       @default(now())
+}
+
+// ========= NOVOS MODELOS =========
+
+model TravelAdvance {
+  id               Int            @id @default(autoincrement())
+  travelExpenseId  Int
+  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+
+  amountCents      Int
+  issuedAt         DateTime       @default(now())
+  method           String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  @@index([travelExpenseId])
+}
+
+model TravelReturn {
+  id               Int            @id @default(autoincrement())
+  travelExpenseId  Int
+  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+
+  amountCents      Int
+  returnedAt       DateTime       @default(now())
+  method           String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  @@index([travelExpenseId])
 }

@@ -8,12 +8,25 @@ type CreateReimbursementShape = {
     bankAccount?: string;
     notes?: string;
 };
+type CreateAdvanceDto = {
+    amount: number;
+    issuedAt?: string;
+    method?: string;
+    notes?: string;
+};
+type CreateReturnDto = {
+    amount: number;
+    returnedAt?: string;
+    method?: string;
+    notes?: string;
+};
 export declare class TravelExpensesService {
     private prisma;
     constructor(prisma: PrismaService);
-    create(dto: CreateTravelExpenseDto): Promise<{
+    createExpense(dto: CreateTravelExpenseDto): Promise<{
         amount: number;
         reimbursedAmount: number;
+        id: number;
         employeeName: string | null;
         department: string | null;
         description: string | null;
@@ -22,14 +35,35 @@ export declare class TravelExpensesService {
         state: string | null;
         expenseDate: Date | null;
         currency: string | null;
-        receiptUrl: string | null;
-        id: number;
         amountCents: number;
         reimbursedCents: number;
         status: string;
+        receiptUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
+    create(dto: CreateTravelExpenseDto): Promise<{
+        amount: number;
+        reimbursedAmount: number;
+        id: number;
+        employeeName: string | null;
+        department: string | null;
+        description: string | null;
+        category: string;
+        city: string | null;
+        state: string | null;
+        expenseDate: Date | null;
+        currency: string | null;
+        amountCents: number;
+        reimbursedCents: number;
+        status: string;
+        receiptUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    private getTotals;
+    private computeStatus;
+    private recalcAndUpdateStatus;
     findAll(params?: {
         page?: number;
         pageSize?: number;
@@ -42,6 +76,9 @@ export declare class TravelExpensesService {
         data: {
             amount: number;
             reimbursedAmount: number;
+            advancesAmount: number;
+            returnsAmount: number;
+            id: number;
             employeeName: string | null;
             department: string | null;
             description: string | null;
@@ -50,11 +87,10 @@ export declare class TravelExpensesService {
             state: string | null;
             expenseDate: Date | null;
             currency: string | null;
-            receiptUrl: string | null;
-            id: number;
             amountCents: number;
             reimbursedCents: number;
             status: string;
+            receiptUrl: string | null;
             createdAt: Date;
             updatedAt: Date;
         }[];
@@ -73,6 +109,27 @@ export declare class TravelExpensesService {
             bankAccount: string | null;
             notes: string | null;
         }[];
+        advances: {
+            amount: number;
+            id: number;
+            amountCents: number;
+            createdAt: Date;
+            travelExpenseId: number;
+            notes: string | null;
+            issuedAt: Date;
+            method: string | null;
+        }[];
+        returns: {
+            amount: number;
+            id: number;
+            amountCents: number;
+            createdAt: Date;
+            travelExpenseId: number;
+            notes: string | null;
+            method: string | null;
+            returnedAt: Date;
+        }[];
+        id: number;
         employeeName: string | null;
         department: string | null;
         description: string | null;
@@ -81,17 +138,17 @@ export declare class TravelExpensesService {
         state: string | null;
         expenseDate: Date | null;
         currency: string | null;
-        receiptUrl: string | null;
-        id: number;
         amountCents: number;
         reimbursedCents: number;
         status: string;
+        receiptUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
     update(id: number, dto: UpdateTravelExpenseDto): Promise<{
         amount: number;
         reimbursedAmount: number;
+        id: number;
         employeeName: string | null;
         department: string | null;
         description: string | null;
@@ -100,11 +157,10 @@ export declare class TravelExpensesService {
         state: string | null;
         expenseDate: Date | null;
         currency: string | null;
-        receiptUrl: string | null;
-        id: number;
         amountCents: number;
         reimbursedCents: number;
         status: string;
+        receiptUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -121,17 +177,36 @@ export declare class TravelExpensesService {
         bankAccount: string | null;
         notes: string | null;
     }[]>;
-    addReimbursement(expenseId: number, dto: CreateReimbursementDto & CreateReimbursementShape): Promise<{
+    addReimbursement(expenseId: number, dto: CreateReimbursementDto & CreateReimbursementShape): Promise<any>;
+    deleteReimbursement(expenseId: number, reimbursementId: number): Promise<{
+        deleted: boolean;
+    }>;
+    listAdvances(expenseId: number): Promise<{
         amount: number;
         id: number;
         amountCents: number;
         createdAt: Date;
-        reimbursedAt: Date;
         travelExpenseId: number;
-        bankAccount: string | null;
         notes: string | null;
+        issuedAt: Date;
+        method: string | null;
+    }[]>;
+    addAdvance(expenseId: number, dto: CreateAdvanceDto): Promise<any>;
+    deleteAdvance(expenseId: number, advanceId: number): Promise<{
+        deleted: boolean;
     }>;
-    deleteReimbursement(expenseId: number, reimbursementId: number): Promise<{
+    listReturns(expenseId: number): Promise<{
+        amount: number;
+        id: number;
+        amountCents: number;
+        createdAt: Date;
+        travelExpenseId: number;
+        notes: string | null;
+        method: string | null;
+        returnedAt: Date;
+    }[]>;
+    addReturn(expenseId: number, dto: CreateReturnDto): Promise<any>;
+    deleteReturn(expenseId: number, returnId: number): Promise<{
         deleted: boolean;
     }>;
     private ensureExists;

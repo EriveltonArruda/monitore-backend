@@ -24,12 +24,12 @@ export declare class DashboardController {
             productId: number;
             type: string;
             quantity: number;
+            userId: number;
             details: string | null;
             relatedParty: string | null;
             unitPriceAtMovement: number | null;
             notes: string | null;
             document: string | null;
-            userId: number;
         })[];
     }>;
 }
