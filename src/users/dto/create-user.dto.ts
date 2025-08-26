@@ -19,6 +19,7 @@ export enum UserModule {
   DASHBOARD = 'DASHBOARD',
   CONTATOS = 'CONTATOS',
   USUARIOS = 'USUARIOS',
+  DESPESAS_VIAGEM = 'DESPESAS_VIAGEM',
 }
 
 export class CreateUserDto {

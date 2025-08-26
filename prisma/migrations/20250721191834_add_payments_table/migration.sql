@@ -1,8 +1,0 @@
--- CreateTable
-CREATE TABLE "Payment" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "accountId" INTEGER NOT NULL,
-    "paidAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Payment_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "AccountPayable" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);

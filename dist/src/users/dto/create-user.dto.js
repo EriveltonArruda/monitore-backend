@@ -29,6 +29,7 @@ var UserModule;
     UserModule["DASHBOARD"] = "DASHBOARD";
     UserModule["CONTATOS"] = "CONTATOS";
     UserModule["USUARIOS"] = "USUARIOS";
+    UserModule["DESPESAS_VIAGEM"] = "DESPESAS_VIAGEM";
 })(UserModule || (exports.UserModule = UserModule = {}));
 class CreateUserDto {
     name;
