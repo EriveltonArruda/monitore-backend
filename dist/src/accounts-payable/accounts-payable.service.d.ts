@@ -1,6 +1,7 @@
 import { CreateAccountsPayableDto } from './dto/create-accounts-payable.dto';
 import { UpdateAccountsPayableDto } from './dto/update-accounts-payable.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { GetPayablesStatusQueryDto } from './dto/get-payables-status.dto';
 interface FindAllAccountsParams {
     page: number;
     limit: number;
@@ -16,21 +17,23 @@ export declare class AccountsPayableService {
     create(createAccountsPayableDto: CreateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
     }>;
     findAll(params: FindAllAccountsParams): Promise<{
-        data: ({
+        data: {
+            daysToDue: number;
+            alertTag: "VENCIDO" | "D-3" | "D-7" | null;
             payments: {
                 id: number;
                 createdAt: Date;
@@ -39,25 +42,26 @@ export declare class AccountsPayableService {
                 amount: number | null;
                 bankAccount: string | null;
             }[];
-        } & {
             id: number;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             category: string;
-            status: string;
             value: number;
             dueDate: Date;
+            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
+            createdAt: Date;
+            updatedAt: Date;
             isRecurring: boolean;
             recurringUntil: Date | null;
             recurringSourceId: number | null;
-        })[];
+        }[];
         total: number;
     }>;
     findOne(id: number): Promise<{
+        daysToDue: number;
+        alertTag: "VENCIDO" | "D-3" | "D-7" | null;
         payments: {
             id: number;
             createdAt: Date;
@@ -66,18 +70,17 @@ export declare class AccountsPayableService {
             amount: number | null;
             bankAccount: string | null;
         }[];
-    } & {
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -95,15 +98,15 @@ export declare class AccountsPayableService {
         } & {
             id: number;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             category: string;
-            status: string;
             value: number;
             dueDate: Date;
+            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
+            createdAt: Date;
+            updatedAt: Date;
             isRecurring: boolean;
             recurringUntil: Date | null;
             recurringSourceId: number | null;
@@ -124,15 +127,15 @@ export declare class AccountsPayableService {
     update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -140,15 +143,15 @@ export declare class AccountsPayableService {
     remove(id: number): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         category: string;
-        status: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -160,6 +163,32 @@ export declare class AccountsPayableService {
         paidAt: Date;
         amount: number | null;
         bankAccount: string | null;
+    }>;
+    getPayablesStatus(query: GetPayablesStatusQueryDto): Promise<{
+        period: {
+            from: string;
+            to: string;
+        } | null;
+        totals: {
+            count: number;
+            amount: number;
+        };
+        buckets: {
+            VENCIDO: {
+                count: number;
+                amount: number;
+            };
+            ABERTO: {
+                count: number;
+                amount: number;
+            };
+            PAGO: {
+                count: number;
+                amount: number;
+            };
+        };
+        currency: string;
+        generatedAt: string;
     }>;
 }
 export {};

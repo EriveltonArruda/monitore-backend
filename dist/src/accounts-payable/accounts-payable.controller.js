@@ -22,6 +22,7 @@ const create_accounts_payable_dto_1 = require("./dto/create-accounts-payable.dto
 const update_accounts_payable_dto_1 = require("./dto/update-accounts-payable.dto");
 const pdfmake_1 = __importDefault(require("pdfmake"));
 const path_1 = require("path");
+const get_payables_status_dto_1 = require("./dto/get-payables-status.dto");
 let AccountsPayableController = class AccountsPayableController {
     accountsPayableService;
     constructor(accountsPayableService) {
@@ -40,6 +41,9 @@ let AccountsPayableController = class AccountsPayableController {
             category: category && category !== 'TODAS' ? category : undefined,
             search: search || '',
         });
+    }
+    getPayablesStatus(query) {
+        return this.accountsPayableService.getPayablesStatus(query);
     }
     async getMonthlyReport(year, category, status, page, limit) {
         return this.accountsPayableService.getMonthlyReport(year, category, status, Number(page) || 1, Number(limit) || 12);
@@ -244,6 +248,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('reports/status'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_payables_status_dto_1.GetPayablesStatusQueryDto]),
+    __metadata("design:returntype", void 0)
+], AccountsPayableController.prototype, "getPayablesStatus", null);
 __decorate([
     (0, common_1.Get)('reports/month'),
     __param(0, (0, common_1.Query)('year')),

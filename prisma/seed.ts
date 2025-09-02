@@ -1,33 +1,51 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
-// Inicializa o Prisma Client
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log(`Iniciando o processo de seeding...`);
+  console.log(`🔄 Iniciando o processo de seeding...`);
 
-  // Cria nosso primeiro usuário administrador
-  const user1 = await prisma.user.create({
-    data: {
+  // === ADMIN PRINCIPAL ===
+  const adminPassword = await bcrypt.hash('supersecret', 10);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@monitore.com' },
+    update: {},
+    create: {
       email: 'admin@monitore.com',
       name: 'Admin Principal',
-      // No mundo real, esta senha seria "hasheada" (criptografada)
-      // antes de ser salva. Por enquanto, deixaremos como texto simples.
-      password: 'supersecret', 
+      password: adminPassword,
+      role: 'ADMIN',
+      modules: '*', // libera todos os módulos
     },
   });
 
-  console.log(`Usuário criado: ${user1.name} (ID: ${user1.id})`);
-  console.log(`Seeding finalizado.`);
+  // === ERIVELTON ===
+  const eriveltonPassword = await bcrypt.hash('ErvMonitore1569', 10);
+  const erivelton = await prisma.user.upsert({
+    where: { email: 'erivelton@monitore.com' },
+    update: {},
+    create: {
+      email: 'erivelton@monitore.com',
+      name: 'Erivelton',
+      password: eriveltonPassword,
+      role: 'ADMIN',
+      modules: '*',
+    },
+  });
+
+  console.log(`✅ Usuários criados ou já existentes:`);
+  console.log(`- ${admin.name} (${admin.email})`);
+  console.log(`- ${erivelton.name} (${erivelton.email})`);
+
+  console.log(`✨ Seeding finalizado.`);
 }
 
-// Executa a função principal e lida com erros
 main()
   .catch((e) => {
-    console.error(e);
+    console.error(`❌ Erro no seeding:`, e);
     process.exit(1);
   })
   .finally(async () => {
-    // Fecha a conexão com o banco de dados
     await prisma.$disconnect();
   });

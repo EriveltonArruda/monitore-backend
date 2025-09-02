@@ -38,9 +38,9 @@ export declare class TravelExpensesService {
         city: string | null;
         state: string | null;
         expenseDate: Date | null;
+        receiptUrl: string | null;
         amountCents: number;
         reimbursedCents: number;
-        receiptUrl: string | null;
     }>;
     create(dto: CreateTravelExpenseDto): Promise<{
         amount: number;
@@ -57,9 +57,9 @@ export declare class TravelExpensesService {
         city: string | null;
         state: string | null;
         expenseDate: Date | null;
+        receiptUrl: string | null;
         amountCents: number;
         reimbursedCents: number;
-        receiptUrl: string | null;
     }>;
     private getTotals;
     private computeStatus;
@@ -90,9 +90,9 @@ export declare class TravelExpensesService {
             city: string | null;
             state: string | null;
             expenseDate: Date | null;
+            receiptUrl: string | null;
             amountCents: number;
             reimbursedCents: number;
-            receiptUrl: string | null;
         }[];
         total: number;
     }>;
@@ -105,9 +105,9 @@ export declare class TravelExpensesService {
             createdAt: Date;
             notes: string | null;
             bankAccount: string | null;
+            reimbursedAt: Date;
             amountCents: number;
             travelExpenseId: number;
-            reimbursedAt: Date;
         }[];
         advances: {
             amount: number;
@@ -141,9 +141,9 @@ export declare class TravelExpensesService {
         city: string | null;
         state: string | null;
         expenseDate: Date | null;
+        receiptUrl: string | null;
         amountCents: number;
         reimbursedCents: number;
-        receiptUrl: string | null;
     }>;
     update(id: number, dto: UpdateTravelExpenseDto): Promise<{
         amount: number;
@@ -160,9 +160,9 @@ export declare class TravelExpensesService {
         city: string | null;
         state: string | null;
         expenseDate: Date | null;
+        receiptUrl: string | null;
         amountCents: number;
         reimbursedCents: number;
-        receiptUrl: string | null;
     }>;
     remove(id: number): Promise<{
         deleted: boolean;
@@ -173,9 +173,9 @@ export declare class TravelExpensesService {
         createdAt: Date;
         notes: string | null;
         bankAccount: string | null;
+        reimbursedAt: Date;
         amountCents: number;
         travelExpenseId: number;
-        reimbursedAt: Date;
     }[]>;
     addReimbursement(expenseId: number, dto: CreateReimbursementDto & CreateReimbursementShape): Promise<any>;
     deleteReimbursement(expenseId: number, reimbursementId: number): Promise<{

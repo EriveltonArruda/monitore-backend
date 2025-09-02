@@ -107,7 +107,7 @@ let AccountsPayableService = class AccountsPayableService {
             where.category = category;
         }
         if (search && search.trim() !== '') {
-            where.name = { contains: search.trim() };
+            where.name = { contains: search.trim(), mode: 'insensitive' };
         }
         const [accounts, total] = await this.prisma.$transaction([
             this.prisma.accountPayable.findMany({
@@ -119,7 +119,11 @@ let AccountsPayableService = class AccountsPayableService {
             }),
             this.prisma.accountPayable.count({ where }),
         ]);
-        return { data: accounts, total };
+        const enriched = accounts.map((a) => ({
+            ...a,
+            ...computeAlertFields(a.status, a.dueDate),
+        }));
+        return { data: enriched, total };
     }
     async findOne(id) {
         const account = await this.prisma.accountPayable.findUnique({
@@ -129,7 +133,7 @@ let AccountsPayableService = class AccountsPayableService {
         if (!account) {
             throw new common_1.NotFoundException(`Conta com ID #${id} não encontrada.`);
         }
-        return account;
+        return { ...account, ...computeAlertFields(account.status, account.dueDate) };
     }
     async findForExportDetailed(year, month, category, status) {
         const where = {
@@ -175,7 +179,7 @@ let AccountsPayableService = class AccountsPayableService {
             orderBy: { dueDate: 'asc' },
         });
         const monthsMap = new Map();
-        accounts.forEach(account => {
+        accounts.forEach((account) => {
             const month = (0, date_fns_1.format)(new Date(account.dueDate), 'yyyy-MM');
             if (!monthsMap.has(month)) {
                 monthsMap.set(month, { month, total: 0, paid: 0, pending: 0, count: 0 });
@@ -211,9 +215,11 @@ let AccountsPayableService = class AccountsPayableService {
             d.setHours(0, 0, 0, 0);
             dataToUpdate.dueDate = d;
         }
+        const userExplicitStatusProvided = typeof updateAccountsPayableDto.status !== 'undefined';
+        const desiredStatus = updateAccountsPayableDto.status;
         const { paymentAmount, bankAccount, paidAt, ...accountFields } = dataToUpdate;
         return await this.prisma.$transaction(async (prisma) => {
-            const updatedAccount = await prisma.accountPayable.update({
+            let updatedAccount = await prisma.accountPayable.update({
                 where: { id },
                 data: accountFields,
             });
@@ -221,7 +227,9 @@ let AccountsPayableService = class AccountsPayableService {
             let totalPaid = paymentsSoFar.reduce((sum, p) => sum + (p.amount ?? 0), 0);
             const paymentDate = paidAt ? new Date(paidAt) : new Date();
             if (paymentAmount) {
-                const raw = typeof paymentAmount === 'string' ? paymentAmount.replace(',', '.') : String(paymentAmount);
+                const raw = typeof paymentAmount === 'string'
+                    ? paymentAmount.replace(',', '.')
+                    : String(paymentAmount);
                 const parsed = parseFloat(raw);
                 if (!isNaN(parsed) && parsed > 0) {
                     const exists = await prisma.payment.findFirst({
@@ -229,13 +237,18 @@ let AccountsPayableService = class AccountsPayableService {
                     });
                     if (!exists) {
                         await prisma.payment.create({
-                            data: { accountId: id, paidAt: paymentDate, amount: parsed, bankAccount: bankAccount ?? null },
+                            data: {
+                                accountId: id,
+                                paidAt: paymentDate,
+                                amount: parsed,
+                                bankAccount: bankAccount ?? null,
+                            },
                         });
                         totalPaid += parsed;
                     }
                 }
             }
-            else if (prevStatus !== 'PAGO' && updateAccountsPayableDto.status === 'PAGO') {
+            else if (prevStatus !== 'PAGO' && desiredStatus === 'PAGO') {
                 const remaining = updatedAccount.value - totalPaid;
                 if (remaining > 0) {
                     const exists = await prisma.payment.findFirst({
@@ -243,16 +256,28 @@ let AccountsPayableService = class AccountsPayableService {
                     });
                     if (!exists) {
                         await prisma.payment.create({
-                            data: { accountId: id, paidAt: paymentDate, amount: remaining, bankAccount: bankAccount ?? null },
+                            data: {
+                                accountId: id,
+                                paidAt: paymentDate,
+                                amount: remaining,
+                                bankAccount: bankAccount ?? null,
+                            },
                         });
                         totalPaid += remaining;
                     }
                 }
             }
-            if (totalPaid >= updatedAccount.value && updatedAccount.status !== 'PAGO') {
-                await prisma.accountPayable.update({ where: { id }, data: { status: 'PAGO' } });
+            if ((!userExplicitStatusProvided || desiredStatus === 'PAGO') &&
+                totalPaid >= updatedAccount.value &&
+                updatedAccount.status !== 'PAGO') {
+                updatedAccount = await prisma.accountPayable.update({
+                    where: { id },
+                    data: { status: 'PAGO' },
+                });
             }
-            if (existingAccount.installmentType === 'PARCELADO' &&
+            const finalStatus = updatedAccount.status;
+            if (finalStatus === 'PAGO' &&
+                existingAccount.installmentType === 'PARCELADO' &&
                 existingAccount.currentInstallment < existingAccount.installments &&
                 totalPaid >= updatedAccount.value) {
                 const nextDue = new Date(existingAccount.dueDate);
@@ -262,7 +287,7 @@ let AccountsPayableService = class AccountsPayableService {
                     data: {
                         name: existingAccount.name,
                         category: existingAccount.category,
-                        value: existingAccount.value,
+                        value: updatedAccount.value,
                         dueDate: nextDue,
                         status: 'A_PAGAR',
                         installmentType: 'PARCELADO',
@@ -288,10 +313,124 @@ let AccountsPayableService = class AccountsPayableService {
         }
         return this.prisma.payment.create({ data: { accountId, paidAt } });
     }
+    async getPayablesStatus(query) {
+        const now = new Date();
+        const hasPeriod = Boolean(query.from && query.to);
+        const baseDateFilter = hasPeriod
+            ? {
+                dueDate: {
+                    gte: startOfDay(parseYMDLocal(query.from)),
+                    lte: endOfDay(parseYMDLocal(query.to)),
+                },
+            }
+            : undefined;
+        const statusFilter = query.status && query.status !== 'TODOS' ? { status: query.status } : undefined;
+        const categoryFilter = query.category && query.category !== 'TODAS' ? { category: query.category } : undefined;
+        const commonWhere = {
+            ...(baseDateFilter ?? {}),
+            ...(statusFilter ?? {}),
+            ...(categoryFilter ?? {}),
+        };
+        const vencidoWhere = {
+            AND: [
+                commonWhere,
+                {
+                    OR: [
+                        { status: 'VENCIDO' },
+                        { AND: [{ status: { not: 'PAGO' } }, { dueDate: { lt: startOfDay(now) } }] },
+                    ],
+                },
+            ],
+        };
+        const abertoWhere = {
+            AND: [
+                commonWhere,
+                { status: { not: 'PAGO' } },
+                { status: { not: 'VENCIDO' } },
+                { dueDate: { gte: startOfDay(now) } },
+            ],
+        };
+        const pagoWhere = {
+            AND: [commonWhere, { status: 'PAGO' }],
+        };
+        const agg = (where) => this.prisma.accountPayable.aggregate({
+            where,
+            _count: { _all: true },
+            _sum: { value: true },
+        });
+        const [vencidoAgg, abertoAgg, pagoAgg, totalAgg] = await Promise.all([
+            agg(vencidoWhere),
+            agg(abertoWhere),
+            agg(pagoWhere),
+            agg(commonWhere),
+        ]);
+        return {
+            period: hasPeriod
+                ? {
+                    from: startOfDay(parseYMDLocal(query.from)).toISOString().slice(0, 10),
+                    to: endOfDay(parseYMDLocal(query.to)).toISOString().slice(0, 10),
+                }
+                : null,
+            totals: {
+                count: totalAgg._count?._all ?? 0,
+                amount: Number(totalAgg._sum?.value ?? 0),
+            },
+            buckets: {
+                VENCIDO: {
+                    count: vencidoAgg._count?._all ?? 0,
+                    amount: Number(vencidoAgg._sum?.value ?? 0),
+                },
+                ABERTO: {
+                    count: abertoAgg._count?._all ?? 0,
+                    amount: Number(abertoAgg._sum?.value ?? 0),
+                },
+                PAGO: {
+                    count: pagoAgg._count?._all ?? 0,
+                    amount: Number(pagoAgg._sum?.value ?? 0),
+                },
+            },
+            currency: 'BRL',
+            generatedAt: new Date().toISOString(),
+        };
+    }
 };
 exports.AccountsPayableService = AccountsPayableService;
 exports.AccountsPayableService = AccountsPayableService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], AccountsPayableService);
+function parseYMDLocal(ymd) {
+    const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
+    return new Date(y, m - 1, d);
+}
+function startOfDay(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+}
+function endOfDay(d) {
+    const x = new Date(d);
+    x.setHours(23, 59, 59, 999);
+    return x;
+}
+function computeAlertFields(status, dueDate) {
+    const due = new Date(dueDate);
+    const today = startOfDay(new Date());
+    const diffMs = startOfDay(due).getTime() - today.getTime();
+    const daysToDue = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    let alertTag = null;
+    if (status === 'PAGO') {
+        alertTag = null;
+    }
+    else if (daysToDue < 0) {
+        alertTag = 'VENCIDO';
+    }
+    else if (daysToDue <= 3) {
+        alertTag = 'D-3';
+    }
+    else if (daysToDue <= 7) {
+        alertTag = 'D-7';
+    }
+    return { daysToDue, alertTag };
+}
 //# sourceMappingURL=accounts-payable.service.js.map
