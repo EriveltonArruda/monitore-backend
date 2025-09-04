@@ -14,6 +14,10 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { TravelExpensesModule } from './travel-expenses/travel-expenses.module';
+import { MunicipalitiesModule } from './municipalities/municipalities.module';
+import { DepartmentsModule } from './departments/departments.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { ReceivablesModule } from './receivables/receivables.module';
 
 @Module({
   imports: [
@@ -30,6 +34,10 @@ import { TravelExpensesModule } from './travel-expenses/travel-expenses.module';
     AuthModule,
     PaymentsModule,
     TravelExpensesModule,
+    MunicipalitiesModule,
+    DepartmentsModule,
+    ContractsModule,
+    ReceivablesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

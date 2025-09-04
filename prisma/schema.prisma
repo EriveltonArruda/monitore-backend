@@ -94,7 +94,7 @@ model User {
   email     String   @unique
   name      String
   password  String
-  role      String   @default("USER") // era enum UserRole; SQLite não suporta enum nativo
+  role      String   @default("USER")
   modules   String?  @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -209,4 +209,79 @@ model TravelReturn {
   createdAt        DateTime       @default(now())
 
   @@index([travelExpenseId])
+}
+
+// ========= NOVOS MODELOS (CONTRATOS & RECEBIDOS) =========
+
+model Municipality {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  cnpj        String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  departments Department[]
+  contracts   Contract[]
+}
+
+model Department {
+  id             Int           @id @default(autoincrement())
+  name           String
+  municipalityId Int
+  municipality   Municipality  @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+
+  contracts      Contract[]
+
+  @@unique([municipalityId, name]) // evita órgãos duplicados na mesma prefeitura
+  @@index([municipalityId])
+}
+
+model Contract {
+  id             Int           @id @default(autoincrement())
+  code           String        // Ex.: "CT 009/2025"
+  description    String?
+  municipalityId Int
+  departmentId   Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  monthlyValue   Float?
+  status         String        @default("ATIVO") // ATIVO | ENCERRADO | SUSPENSO
+  signedAt       DateTime?
+  processNumber  String?
+  active         Boolean       @default(true)    // << ADICIONADO
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  municipality   Municipality  @relation(fields: [municipalityId], references: [id])
+  department     Department?   @relation(fields: [departmentId], references: [id])
+
+  receivables    Receivable[]
+
+  @@unique([municipalityId, code]) // mesmo código pode existir em outra prefeitura
+  @@index([municipalityId])
+  @@index([departmentId])
+  @@index([endDate])               // útil para filtros/ordenações por vigência final
+}
+
+model Receivable {
+  id           Int       @id @default(autoincrement())
+  noteNumber   String?
+  issueDate    DateTime?
+  grossAmount  Float?
+  netAmount    Float?
+  periodLabel  String?   // Ex.: "AGOSTO/2025"
+  periodStart  DateTime?
+  periodEnd    DateTime?
+  deliveryDate DateTime?
+  receivedAt   DateTime?
+  status       String    @default("A_RECEBER") // A_RECEBER | ATRASADO | RECEBIDO
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  contractId   Int
+  contract     Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([issueDate])
+  @@index([status])
 }

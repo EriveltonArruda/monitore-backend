@@ -23,14 +23,14 @@ export declare class StockMovementsController {
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                sku: string | null;
                 description: string | null;
+                status: string;
+                sku: string | null;
                 unit: string | null;
                 stockQuantity: number;
                 costPrice: number | null;
                 categoryId: number | null;
                 supplierId: number | null;
-                status: string;
                 minStockQuantity: number;
                 location: string | null;
                 mainImageUrl: string | null;

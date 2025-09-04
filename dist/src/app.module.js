@@ -23,6 +23,10 @@ const users_module_1 = require("./users/users.module");
 const auth_module_1 = require("./auth/auth.module");
 const payments_module_1 = require("./payments/payments.module");
 const travel_expenses_module_1 = require("./travel-expenses/travel-expenses.module");
+const municipalities_module_1 = require("./municipalities/municipalities.module");
+const departments_module_1 = require("./departments/departments.module");
+const contracts_module_1 = require("./contracts/contracts.module");
+const receivables_module_1 = require("./receivables/receivables.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +46,10 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             payments_module_1.PaymentsModule,
             travel_expenses_module_1.TravelExpensesModule,
+            municipalities_module_1.MunicipalitiesModule,
+            departments_module_1.DepartmentsModule,
+            contracts_module_1.ContractsModule,
+            receivables_module_1.ReceivablesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
