@@ -8,7 +8,9 @@ import {
   Delete,
   ParseIntPipe,
   Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { TravelExpensesService } from './travel-expenses.service';
 import { CreateTravelExpenseDto } from './dto/create-travel-expense.dto';
 import { UpdateTravelExpenseDto } from './dto/update-travel-expense.dto';
@@ -18,6 +20,19 @@ import { CreateReimbursementDto } from './dto/create-reimbursement.dto';
 export class TravelExpensesController {
   constructor(private readonly service: TravelExpensesService) { }
 
+  // ---------- Utils (filename dinâmico p/ export) ----------
+  private buildExportFilename(query: any, ext: 'csv' | 'pdf') {
+    const parts: string[] = ['relatorio_despesas_viagem'];
+    if (query?.year) parts.push(String(query.year));
+    if (query?.month) parts.push(String(query.month).padStart(2, '0'));
+    if (query?.status) parts.push(String(query.status).toLowerCase());
+    if (query?.category) parts.push(String(query.category).toLowerCase());
+    // slug simples
+    const base = parts.join('_').replace(/[^\w\-]+/g, '_');
+    return `${base}.${ext}`;
+  }
+
+  // ---------- CRUD base ----------
   // Criar nova despesa
   @Post()
   create(@Body() dto: CreateTravelExpenseDto) {
@@ -67,7 +82,38 @@ export class TravelExpensesController {
     return this.service.remove(id);
   }
 
-  // ===== Reembolsos =====
+  // ---------- Exportações ----------
+  @Get('export-csv')
+  async exportCsv(@Query() query: any, @Res() res: Response) {
+    const filename = this.buildExportFilename(query, 'csv');
+    const csv = await this.service.exportCsv(query);
+
+    // BOM para Excel (abre acentuação certinho)
+    const payload = '\uFEFF' + csv;
+
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    });
+    res.send(payload);
+  }
+
+  @Get('export-pdf')
+  async exportPdf(@Query() query: any, @Res() res: Response) {
+    const filename = this.buildExportFilename(query, 'pdf');
+    const buffer = await this.service.exportPdf(query);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': String(buffer.length),
+      'Cache-Control': 'no-store',
+    });
+    res.end(buffer);
+  }
+
+  // ---------- Reembolsos ----------
   @Get(':id/reimbursements')
   listReimbursements(@Param('id', ParseIntPipe) id: number) {
     return this.service.listReimbursements(id);
@@ -89,7 +135,7 @@ export class TravelExpensesController {
     return this.service.deleteReimbursement(id, reimbursementId);
   }
 
-  // ===== Adiantamentos =====
+  // ---------- Adiantamentos ----------
   @Get(':id/advances')
   listAdvances(@Param('id', ParseIntPipe) id: number) {
     return this.service.listAdvances(id);
@@ -98,7 +144,13 @@ export class TravelExpensesController {
   @Post(':id/advances')
   addAdvance(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: { amount: number; issuedAt?: string; method?: string; notes?: string },
+    @Body()
+    dto: {
+      amount: number | string;
+      issuedAt?: string;
+      method?: string;
+      notes?: string;
+    },
   ) {
     return this.service.addAdvance(id, dto);
   }
@@ -111,7 +163,7 @@ export class TravelExpensesController {
     return this.service.deleteAdvance(id, advanceId);
   }
 
-  // ===== Devoluções =====
+  // ---------- Devoluções ----------
   @Get(':id/returns')
   listReturns(@Param('id', ParseIntPipe) id: number) {
     return this.service.listReturns(id);
@@ -120,7 +172,13 @@ export class TravelExpensesController {
   @Post(':id/returns')
   addReturn(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: { amount: number; returnedAt?: string; method?: string; notes?: string },
+    @Body()
+    dto: {
+      amount: number | string;
+      returnedAt?: string;
+      method?: string;
+      notes?: string;
+    },
   ) {
     return this.service.addReturn(id, dto);
   }

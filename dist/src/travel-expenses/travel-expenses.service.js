@@ -8,12 +8,31 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TravelExpensesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const toCents = (n) => Math.round(Number(n) * 100);
+const json2csv_1 = require("json2csv");
+const pdfkit_1 = __importDefault(require("pdfkit"));
 const fromCents = (c) => Number((c / 100).toFixed(2));
+const toCentsSmart = (val) => {
+    if (typeof val === 'number') {
+        if (!Number.isFinite(val))
+            throw new common_1.BadRequestException('Valor inválido');
+        return Math.round(val * 100);
+    }
+    if (typeof val === 'string') {
+        const norm = val.replace(/\./g, '').replace(',', '.').trim();
+        const num = Number(norm);
+        if (Number.isNaN(num))
+            throw new common_1.BadRequestException('Valor inválido');
+        return Math.round(num * 100);
+    }
+    throw new common_1.BadRequestException('Valor inválido');
+};
 let TravelExpensesService = class TravelExpensesService {
     prisma;
     constructor(prisma) {
@@ -30,7 +49,7 @@ let TravelExpensesService = class TravelExpensesService {
                 state: dto.state ?? null,
                 expenseDate: dto.expenseDate ? new Date(dto.expenseDate) : new Date(),
                 currency: dto.currency ?? 'BRL',
-                amountCents: toCents(dto.amount),
+                amountCents: toCentsSmart(dto.amount),
                 receiptUrl: dto.receiptUrl ?? null,
                 status: 'PENDENTE',
                 reimbursedCents: 0,
@@ -46,7 +65,7 @@ let TravelExpensesService = class TravelExpensesService {
         return this.createExpense(dto);
     }
     async getTotals(expenseId, tx = this.prisma) {
-        const [advSum, retSum, exp] = await Promise.all([
+        const [advSum, retSum, reiSum, exp] = await Promise.all([
             tx.travelAdvance.aggregate({
                 where: { travelExpenseId: expenseId },
                 _sum: { amountCents: true },
@@ -55,41 +74,55 @@ let TravelExpensesService = class TravelExpensesService {
                 where: { travelExpenseId: expenseId },
                 _sum: { amountCents: true },
             }),
+            tx.travelReimbursement.aggregate({
+                where: { travelExpenseId: expenseId },
+                _sum: { amountCents: true },
+            }),
             tx.travelExpense.findUnique({ where: { id: expenseId } }),
         ]);
         if (!exp)
             throw new common_1.NotFoundException('Despesa não encontrada');
-        const advances = advSum._sum.amountCents ?? 0;
-        const returns = retSum._sum.amountCents ?? 0;
+        const advancesCents = advSum._sum.amountCents ?? 0;
+        const returnsCents = retSum._sum.amountCents ?? 0;
+        const reimbursedCentsAgg = reiSum._sum.amountCents ?? 0;
         return {
             amountCents: exp.amountCents,
-            reimbursedCents: exp.reimbursedCents,
-            advancesCents: advances,
-            returnsCents: returns,
+            reimbursedCentsAgg,
+            advancesCents,
+            returnsCents,
             status: exp.status,
         };
     }
-    computeStatus(amountCents, reimbursedCents, advancesCents, returnsCents) {
-        const dueToEmployee = amountCents - advancesCents - reimbursedCents;
-        const expectedReturn = dueToEmployee < 0 ? -dueToEmployee : 0;
-        const outstandingReturn = Math.max(0, expectedReturn - returnsCents);
-        if (dueToEmployee === 0 && outstandingReturn === 0)
+    round2c(n) {
+        return Math.round(n);
+    }
+    computeBalanceCents(amountCents, reimbursedCents, advancesCents, returnsCents) {
+        return this.round2c(amountCents - advancesCents - reimbursedCents + returnsCents);
+    }
+    computeStatusByBalance(balanceCents) {
+        if (balanceCents <= 0)
             return 'REEMBOLSADO';
-        if (reimbursedCents === 0 && advancesCents === 0 && returnsCents === 0)
-            return 'PENDENTE';
         return 'PARCIAL';
     }
     async recalcAndUpdateStatus(expenseId, tx = this.prisma) {
         const t = await this.getTotals(expenseId, tx);
-        const status = this.computeStatus(t.amountCents, t.reimbursedCents, t.advancesCents, t.returnsCents);
+        const balanceCents = this.computeBalanceCents(t.amountCents, t.reimbursedCentsAgg, t.advancesCents, t.returnsCents);
+        let nextStatus = this.computeStatusByBalance(balanceCents);
+        if (t.advancesCents === 0 && t.reimbursedCentsAgg === 0 && t.returnsCents === 0) {
+            nextStatus = 'PENDENTE';
+        }
         await tx.travelExpense.update({
             where: { id: expenseId },
-            data: { status },
+            data: {
+                reimbursedCents: t.reimbursedCentsAgg,
+                status: nextStatus,
+            },
         });
-        return status;
+        return nextStatus;
     }
-    async findAll(params = {}) {
-        const { page = 1, pageSize = 10, month, year, status, category, search, } = params;
+    buildWhere(filters) {
+        const month = typeof filters.month === 'string' ? Number(filters.month) : filters.month;
+        const year = typeof filters.year === 'string' ? Number(filters.year) : filters.year;
         const where = {};
         if (year && month) {
             const y = Number(year);
@@ -111,18 +144,23 @@ let TravelExpensesService = class TravelExpensesService {
             const end = new Date(y, m + 1, 1);
             where.expenseDate = { gte: start, lt: end };
         }
-        if (status)
-            where.status = status;
-        if (category)
-            where.category = category;
-        if (search) {
+        if (filters.status)
+            where.status = filters.status;
+        if (filters.category)
+            where.category = filters.category;
+        if (filters.search) {
             where.OR = [
-                { employeeName: { contains: search } },
-                { department: { contains: search } },
-                { description: { contains: search } },
-                { city: { contains: search } },
+                { employeeName: { contains: filters.search, mode: 'insensitive' } },
+                { department: { contains: filters.search, mode: 'insensitive' } },
+                { description: { contains: filters.search, mode: 'insensitive' } },
+                { city: { contains: filters.search, mode: 'insensitive' } },
             ];
         }
+        return where;
+    }
+    async findAll(params = {}) {
+        const { page = 1, pageSize = 10, month, year, status, category, search, } = params;
+        const where = this.buildWhere({ month, year, status, category, search });
         const [rows, total] = await this.prisma.$transaction([
             this.prisma.travelExpense.findMany({
                 where,
@@ -133,9 +171,15 @@ let TravelExpensesService = class TravelExpensesService {
             this.prisma.travelExpense.count({ where }),
         ]);
         if (rows.length === 0) {
-            return { data: [], total };
+            return {
+                data: [],
+                total,
+                page,
+                totalPages: Math.ceil(total / pageSize) || 1,
+                limit: pageSize,
+            };
         }
-        const ids = rows.map(r => r.id);
+        const ids = rows.map((r) => r.id);
         const [advList, retList] = await this.prisma.$transaction([
             this.prisma.travelAdvance.findMany({
                 where: { travelExpenseId: { in: ids } },
@@ -154,7 +198,7 @@ let TravelExpensesService = class TravelExpensesService {
         for (const r of retList) {
             retMap.set(r.travelExpenseId, (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0));
         }
-        const data = rows.map(r => {
+        const data = rows.map((r) => {
             const advancesCents = advMap.get(r.id) ?? 0;
             const returnsCents = retMap.get(r.id) ?? 0;
             return {
@@ -165,7 +209,148 @@ let TravelExpensesService = class TravelExpensesService {
                 returnsAmount: fromCents(returnsCents),
             };
         });
-        return { data, total };
+        return {
+            data,
+            total,
+            page,
+            totalPages: Math.ceil(total / pageSize) || 1,
+            limit: pageSize,
+        };
+    }
+    async exportCsv(filters) {
+        const where = this.buildWhere(filters);
+        const rows = await this.prisma.travelExpense.findMany({
+            where,
+            orderBy: { expenseDate: 'desc' },
+        });
+        if (rows.length === 0) {
+            const parser = new json2csv_1.Parser();
+            return parser.parse([]);
+        }
+        const ids = rows.map((r) => r.id);
+        const [advList, retList] = await this.prisma.$transaction([
+            this.prisma.travelAdvance.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+            this.prisma.travelReturn.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+        ]);
+        const advMap = new Map();
+        for (const a of advList) {
+            advMap.set(a.travelExpenseId, (advMap.get(a.travelExpenseId) ?? 0) + (a.amountCents ?? 0));
+        }
+        const retMap = new Map();
+        for (const r of retList) {
+            retMap.set(r.travelExpenseId, (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0));
+        }
+        const flat = rows.map((r) => ({
+            ID: r.id,
+            Funcionário: r.employeeName ?? '',
+            Departamento: r.department ?? '',
+            Descrição: r.description ?? '',
+            Categoria: r.category ?? '',
+            Cidade: r.city ?? '',
+            Estado: r.state ?? '',
+            Data: r.expenseDate
+                ? new Date(r.expenseDate).toISOString().slice(0, 10)
+                : '',
+            Moeda: r.currency ?? 'BRL',
+            Valor: fromCents(r.amountCents),
+            Adiantado: fromCents(advMap.get(r.id) ?? 0),
+            Devolvido: fromCents(retMap.get(r.id) ?? 0),
+            Reembolsado: fromCents(r.reimbursedCents),
+            Status: r.status,
+        }));
+        const parser = new json2csv_1.Parser();
+        return parser.parse(flat);
+    }
+    async exportPdf(filters) {
+        const where = this.buildWhere(filters);
+        const rows = await this.prisma.travelExpense.findMany({
+            where,
+            orderBy: { expenseDate: 'desc' },
+        });
+        const ids = rows.map((r) => r.id);
+        const [advList, retList] = await this.prisma.$transaction([
+            this.prisma.travelAdvance.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+            this.prisma.travelReturn.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
+        ]);
+        const advMap = new Map();
+        for (const a of advList) {
+            advMap.set(a.travelExpenseId, (advMap.get(a.travelExpenseId) ?? 0) + (a.amountCents ?? 0));
+        }
+        const retMap = new Map();
+        for (const r of retList) {
+            retMap.set(r.travelExpenseId, (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0));
+        }
+        const doc = new pdfkit_1.default({ margin: 40 });
+        const chunks = [];
+        doc.on('data', (c) => chunks.push(c));
+        doc.on('error', () => { });
+        doc.fontSize(16).text('Relatório de Despesas de Viagem', { align: 'center' });
+        doc.moveDown(0.5);
+        const filtParts = [];
+        if (filters.month)
+            filtParts.push(`Mês: ${filters.month}`);
+        if (filters.year)
+            filtParts.push(`Ano: ${filters.year}`);
+        if (filters.status)
+            filtParts.push(`Status: ${filters.status}`);
+        if (filters.category)
+            filtParts.push(`Categoria: ${filters.category}`);
+        if (filters.search)
+            filtParts.push(`Busca: ${filters.search}`);
+        if (filtParts.length)
+            doc.fontSize(10).text(filtParts.join('  |  '), { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(11).text('Func.', 40, doc.y, { continued: true, width: 150 });
+        doc.text('Cat.', { continued: true, width: 90 });
+        doc.text('Data', { continued: true, width: 70 });
+        doc.text('Local', { continued: true, width: 110 });
+        doc.text('Valor', { continued: true, width: 70 });
+        doc.text('Adiant.', { continued: true, width: 70 });
+        doc.text('Devolv.', { continued: true, width: 70 });
+        doc.text('Reemb.', { continued: true, width: 70 });
+        doc.text('Status', { width: 80 });
+        doc.moveTo(40, doc.y + 2).lineTo(555, doc.y + 2).stroke();
+        doc.moveDown(0.5);
+        const money = (n) => fromCents(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        rows.forEach((r) => {
+            const local = [r.city, r.state].filter(Boolean).join(' / ');
+            doc.fontSize(10).text(r.employeeName ?? '—', 40, doc.y, { continued: true, width: 150 });
+            doc.text(r.category ?? '—', { continued: true, width: 90 });
+            doc.text(r.expenseDate ? new Date(r.expenseDate).toLocaleDateString('pt-BR') : '—', {
+                continued: true,
+                width: 70,
+            });
+            doc.text(local || '—', { continued: true, width: 110 });
+            doc.text(money(r.amountCents), { continued: true, width: 70 });
+            doc.text(money(advMap.get(r.id) ?? 0), { continued: true, width: 70 });
+            doc.text(money(retMap.get(r.id) ?? 0), { continued: true, width: 70 });
+            doc.text(money(r.reimbursedCents), { continued: true, width: 70 });
+            doc.text(r.status, { width: 80 });
+        });
+        const totalValor = rows.reduce((acc, r) => acc + r.amountCents, 0);
+        const totalAdiant = rows.reduce((acc, r) => acc + (advMap.get(r.id) ?? 0), 0);
+        const totalDevolv = rows.reduce((acc, r) => acc + (retMap.get(r.id) ?? 0), 0);
+        const totalReemb = rows.reduce((acc, r) => acc + r.reimbursedCents, 0);
+        doc.moveDown();
+        doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+        doc.moveDown(0.5);
+        doc.fontSize(11).text(`Totais — Valor: ${money(totalValor)}  |  Adiantado: ${money(totalAdiant)}  |  Devolvido: ${money(totalDevolv)}  |  Reembolsado: ${money(totalReemb)}`);
+        doc.end();
+        return await new Promise((resolve) => {
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+        });
     }
     async findOne(id) {
         const r = await this.prisma.travelExpense.findUnique({
@@ -203,7 +388,7 @@ let TravelExpensesService = class TravelExpensesService {
                 state: dto.state ?? undefined,
                 expenseDate: dto.expenseDate ? new Date(dto.expenseDate) : undefined,
                 currency: dto.currency ?? undefined,
-                amountCents: dto.amount !== undefined ? toCents(dto.amount) : undefined,
+                amountCents: dto.amount !== undefined ? toCentsSmart(dto.amount) : undefined,
                 receiptUrl: dto.receiptUrl ?? undefined,
                 status: dto.status ?? undefined,
             },
@@ -232,12 +417,12 @@ let TravelExpensesService = class TravelExpensesService {
         }));
     }
     async addReimbursement(expenseId, dto) {
-        const exp = await this.ensureExists(expenseId);
-        const amountCents = toCents(dto.amount);
+        await this.ensureExists(expenseId);
+        const amountCents = toCentsSmart(dto.amount);
         if (amountCents <= 0)
             throw new common_1.BadRequestException('Valor do reembolso deve ser maior que zero');
-        const totals = await this.getTotals(expenseId);
-        const maxReembolso = Math.max(0, totals.amountCents - totals.advancesCents - totals.reimbursedCents);
+        const totalsBefore = await this.getTotals(expenseId);
+        const maxReembolso = Math.max(0, totalsBefore.amountCents - totalsBefore.advancesCents - totalsBefore.reimbursedCentsAgg);
         if (amountCents > maxReembolso) {
             throw new common_1.BadRequestException(`Valor excede o restante a reembolsar (restante: ${fromCents(maxReembolso)})`);
         }
@@ -250,10 +435,6 @@ let TravelExpensesService = class TravelExpensesService {
                     bankAccount: dto.bankAccount ?? null,
                     notes: dto.notes ?? null,
                 },
-            });
-            await tx.travelExpense.update({
-                where: { id: expenseId },
-                data: { reimbursedCents: exp.reimbursedCents + amountCents },
             });
             await this.recalcAndUpdateStatus(expenseId, tx);
             return created;
@@ -269,12 +450,6 @@ let TravelExpensesService = class TravelExpensesService {
             throw new common_1.NotFoundException('Reembolso não encontrado');
         await this.prisma.$transaction(async (tx) => {
             await tx.travelReimbursement.delete({ where: { id: reimbursementId } });
-            const exp = await tx.travelExpense.findUnique({ where: { id: expenseId } });
-            const newReimbursed = Math.max(0, (exp?.reimbursedCents ?? 0) - rb.amountCents);
-            await tx.travelExpense.update({
-                where: { id: expenseId },
-                data: { reimbursedCents: newReimbursed },
-            });
             await this.recalcAndUpdateStatus(expenseId, tx);
         });
         return { deleted: true };
@@ -289,7 +464,7 @@ let TravelExpensesService = class TravelExpensesService {
     }
     async addAdvance(expenseId, dto) {
         await this.ensureExists(expenseId);
-        const amountCents = toCents(dto.amount);
+        const amountCents = toCentsSmart(dto.amount);
         if (amountCents <= 0)
             throw new common_1.BadRequestException('Valor do adiantamento deve ser maior que zero');
         const created = await this.prisma.$transaction(async (tx) => {
@@ -328,9 +503,15 @@ let TravelExpensesService = class TravelExpensesService {
     }
     async addReturn(expenseId, dto) {
         await this.ensureExists(expenseId);
-        const amountCents = toCents(dto.amount);
+        const amountCents = toCentsSmart(dto.amount);
         if (amountCents <= 0)
             throw new common_1.BadRequestException('Valor da devolução deve ser maior que zero');
+        const totals = await this.getTotals(expenseId);
+        const expectedReturn = Math.max(0, totals.advancesCents - (totals.amountCents - totals.reimbursedCentsAgg));
+        const outstandingReturn = Math.max(0, expectedReturn - totals.returnsCents);
+        if (amountCents > outstandingReturn) {
+            throw new common_1.BadRequestException(`Valor excede a devolução esperada (restante: ${fromCents(outstandingReturn)})`);
+        }
         const created = await this.prisma.$transaction(async (tx) => {
             const ret = await tx.travelReturn.create({
                 data: {

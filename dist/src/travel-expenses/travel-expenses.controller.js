@@ -23,6 +23,19 @@ let TravelExpensesController = class TravelExpensesController {
     constructor(service) {
         this.service = service;
     }
+    buildExportFilename(query, ext) {
+        const parts = ['relatorio_despesas_viagem'];
+        if (query?.year)
+            parts.push(String(query.year));
+        if (query?.month)
+            parts.push(String(query.month).padStart(2, '0'));
+        if (query?.status)
+            parts.push(String(query.status).toLowerCase());
+        if (query?.category)
+            parts.push(String(query.category).toLowerCase());
+        const base = parts.join('_').replace(/[^\w\-]+/g, '_');
+        return `${base}.${ext}`;
+    }
     create(dto) {
         return this.service.create(dto);
     }
@@ -45,6 +58,28 @@ let TravelExpensesController = class TravelExpensesController {
     }
     remove(id) {
         return this.service.remove(id);
+    }
+    async exportCsv(query, res) {
+        const filename = this.buildExportFilename(query, 'csv');
+        const csv = await this.service.exportCsv(query);
+        const payload = '\uFEFF' + csv;
+        res.set({
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'no-store',
+        });
+        res.send(payload);
+    }
+    async exportPdf(query, res) {
+        const filename = this.buildExportFilename(query, 'pdf');
+        const buffer = await this.service.exportPdf(query);
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Length': String(buffer.length),
+            'Cache-Control': 'no-store',
+        });
+        res.end(buffer);
     }
     listReimbursements(id) {
         return this.service.listReimbursements(id);
@@ -117,6 +152,22 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], TravelExpensesController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)('export-csv'),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TravelExpensesController.prototype, "exportCsv", null);
+__decorate([
+    (0, common_1.Get)('export-pdf'),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TravelExpensesController.prototype, "exportPdf", null);
 __decorate([
     (0, common_1.Get)(':id/reimbursements'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

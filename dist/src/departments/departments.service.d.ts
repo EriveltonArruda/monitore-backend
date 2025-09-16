@@ -9,9 +9,9 @@ export declare class DepartmentsService {
         municipality: {
             id: number;
             name: string;
-            cnpj: string | null;
             createdAt: Date;
             updatedAt: Date;
+            cnpj: string | null;
         };
     } & {
         id: number;
@@ -23,9 +23,9 @@ export declare class DepartmentsService {
             municipality: {
                 id: number;
                 name: string;
-                cnpj: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                cnpj: string | null;
             };
         } & {
             id: number;
@@ -41,9 +41,9 @@ export declare class DepartmentsService {
         municipality: {
             id: number;
             name: string;
-            cnpj: string | null;
             createdAt: Date;
             updatedAt: Date;
+            cnpj: string | null;
         };
     } & {
         id: number;
@@ -54,9 +54,9 @@ export declare class DepartmentsService {
         municipality: {
             id: number;
             name: string;
-            cnpj: string | null;
             createdAt: Date;
             updatedAt: Date;
+            cnpj: string | null;
         };
     } & {
         id: number;
