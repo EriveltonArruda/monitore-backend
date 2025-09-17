@@ -88,11 +88,11 @@ export class StockMovementsService {
       const now = new Date();
       let startDate: Date | null = null;
       if (period === 'today') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // meia-noite de hoje
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       } else if (period === 'last7') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); // últimos 7 dias
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
       } else if (period === 'last30') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29); // últimos 30 dias
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
       }
       if (startDate) {
         where.createdAt = { gte: startDate };
@@ -113,14 +113,33 @@ export class StockMovementsService {
     return { data: movements, total };
   }
 
+  // ---------- NOVO: Buscar detalhes de uma movimentação ----------
+  async findOne(id: number) {
+    const movement = await this.prisma.stockMovement.findUnique({
+      where: { id },
+      include: {
+        product: true, // mantém compatível com o front atual
+        // Se você já tiver relações como "user" ou "attachments", dá pra incluir aqui:
+        // user: true,
+        // attachments: true,
+      },
+    });
+
+    if (!movement) {
+      throw new NotFoundException(`Movimentação com ID #${id} não encontrada.`);
+    }
+
+    return movement;
+  }
+
   async remove(id: number) {
-    // Busca a movimentação antes de tentar excluir
     const movement = await this.prisma.stockMovement.findUnique({ where: { id } });
     if (!movement) {
       throw new NotFoundException(`Movimentação com ID #${id} não encontrada.`);
     }
 
-    // Exclui a movimentação
+    // Observação: aqui não estamos “desfazendo” o efeito no estoque.
+    // Se quiser reverter, avise que ajusto a lógica de estorno do estoque.
     return this.prisma.stockMovement.delete({ where: { id } });
   }
 }

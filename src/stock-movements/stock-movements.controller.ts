@@ -30,6 +30,12 @@ export class StockMovementsController {
     });
   }
 
+  // ---------- NOVO: Detalhes ----------
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.stockMovementsService.findOne(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.stockMovementsService.remove(id);

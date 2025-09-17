@@ -34,6 +34,9 @@ let StockMovementsController = class StockMovementsController {
             period,
         });
     }
+    findOne(id) {
+        return this.stockMovementsService.findOne(id);
+    }
     remove(id) {
         return this.stockMovementsService.remove(id);
     }
@@ -58,6 +61,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], StockMovementsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], StockMovementsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

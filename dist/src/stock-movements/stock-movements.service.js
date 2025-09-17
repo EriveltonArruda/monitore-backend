@@ -98,6 +98,18 @@ let StockMovementsService = class StockMovementsService {
         ]);
         return { data: movements, total };
     }
+    async findOne(id) {
+        const movement = await this.prisma.stockMovement.findUnique({
+            where: { id },
+            include: {
+                product: true,
+            },
+        });
+        if (!movement) {
+            throw new common_1.NotFoundException(`Movimentação com ID #${id} não encontrada.`);
+        }
+        return movement;
+    }
     async remove(id) {
         const movement = await this.prisma.stockMovement.findUnique({ where: { id } });
         if (!movement) {
