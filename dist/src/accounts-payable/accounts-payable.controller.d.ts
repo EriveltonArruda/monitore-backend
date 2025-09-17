@@ -9,15 +9,15 @@ export declare class AccountsPayableController {
     create(dto: CreateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         category: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -36,20 +36,44 @@ export declare class AccountsPayableController {
             }[];
             id: number;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
             category: string;
             value: number;
             dueDate: Date;
+            status: string;
             installmentType: string;
             installments: number | null;
             currentInstallment: number | null;
+            createdAt: Date;
+            updatedAt: Date;
             isRecurring: boolean;
             recurringUntil: Date | null;
             recurringSourceId: number | null;
         }[];
         total: number;
+    }>;
+    getSummary(from?: string, to?: string, status?: string, category?: string, search?: string): Promise<{
+        overdue: {
+            count: any;
+            amount: number;
+        };
+        due7: {
+            count: any;
+            amount: number;
+        };
+        due3: {
+            count: any;
+            amount: number;
+        };
+        open: {
+            count: any;
+            amount: number;
+        };
+        paid: {
+            count: any;
+            amount: number;
+        };
+        currency: string;
+        generatedAt: string;
     }>;
     getPayablesStatus(query: GetPayablesStatusQueryDto): Promise<{
         period: {
@@ -70,6 +94,14 @@ export declare class AccountsPayableController {
                 amount: number;
             };
             PAGO: {
+                count: number;
+                amount: number;
+            };
+            DUE_7: {
+                count: number;
+                amount: number;
+            };
+            DUE_3: {
                 count: number;
                 amount: number;
             };
@@ -98,15 +130,15 @@ export declare class AccountsPayableController {
         }[];
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         category: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -114,15 +146,15 @@ export declare class AccountsPayableController {
     update(id: number, dto: UpdateAccountsPayableDto): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         category: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;
@@ -130,15 +162,15 @@ export declare class AccountsPayableController {
     remove(id: number): Promise<{
         id: number;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         category: string;
         value: number;
         dueDate: Date;
+        status: string;
         installmentType: string;
         installments: number | null;
         currentInstallment: number | null;
+        createdAt: Date;
+        updatedAt: Date;
         isRecurring: boolean;
         recurringUntil: Date | null;
         recurringSourceId: number | null;

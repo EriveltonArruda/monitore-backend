@@ -353,16 +353,32 @@ let AccountsPayableService = class AccountsPayableService {
         const pagoWhere = {
             AND: [commonWhere, { status: 'PAGO' }],
         };
+        const due7Where = {
+            AND: [
+                commonWhere,
+                { status: { not: 'PAGO' } },
+                { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 7)) } },
+            ],
+        };
+        const due3Where = {
+            AND: [
+                commonWhere,
+                { status: { not: 'PAGO' } },
+                { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 3)) } },
+            ],
+        };
         const agg = (where) => this.prisma.accountPayable.aggregate({
             where,
             _count: { _all: true },
             _sum: { value: true },
         });
-        const [vencidoAgg, abertoAgg, pagoAgg, totalAgg] = await Promise.all([
+        const [vencidoAgg, abertoAgg, pagoAgg, totalAgg, due7Agg, due3Agg] = await Promise.all([
             agg(vencidoWhere),
             agg(abertoWhere),
             agg(pagoWhere),
             agg(commonWhere),
+            agg(due7Where),
+            agg(due3Where),
         ]);
         return {
             period: hasPeriod
@@ -388,7 +404,99 @@ let AccountsPayableService = class AccountsPayableService {
                     count: pagoAgg._count?._all ?? 0,
                     amount: Number(pagoAgg._sum?.value ?? 0),
                 },
+                DUE_7: {
+                    count: due7Agg._count?._all ?? 0,
+                    amount: Number(due7Agg._sum?.value ?? 0),
+                },
+                DUE_3: {
+                    count: due3Agg._count?._all ?? 0,
+                    amount: Number(due3Agg._sum?.value ?? 0),
+                },
             },
+            currency: 'BRL',
+            generatedAt: new Date().toISOString(),
+        };
+    }
+    async getSummary(query) {
+        const now = new Date();
+        const baseDateFilter = query.from && query.to
+            ? {
+                dueDate: {
+                    gte: startOfDay(parseYMDLocal(query.from)),
+                    lte: endOfDay(parseYMDLocal(query.to)),
+                },
+            }
+            : undefined;
+        const whereFilters = {
+            ...(baseDateFilter ?? {}),
+        };
+        if (query.status && query.status !== 'TODOS') {
+            whereFilters.status = query.status;
+        }
+        if (query.category && query.category !== 'TODAS') {
+            whereFilters.category = query.category;
+        }
+        if (query.search && query.search.trim() !== '') {
+            whereFilters.name = { contains: query.search.trim(), mode: 'insensitive' };
+        }
+        const overdueWhere = {
+            AND: [
+                whereFilters,
+                {
+                    OR: [
+                        { status: 'VENCIDO' },
+                        { AND: [{ status: { not: 'PAGO' } }, { dueDate: { lt: startOfDay(now) } }] },
+                    ],
+                },
+            ],
+        };
+        const due7Where = {
+            AND: [
+                whereFilters,
+                { status: { not: 'PAGO' } },
+                { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 7)) } },
+            ],
+        };
+        const due3Where = {
+            AND: [
+                whereFilters,
+                { status: { not: 'PAGO' } },
+                { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 3)) } },
+            ],
+        };
+        const openWhere = {
+            AND: [
+                whereFilters,
+                { status: { not: 'PAGO' } },
+                { status: { not: 'VENCIDO' } },
+                { dueDate: { gte: startOfDay(now) } },
+            ],
+        };
+        const paidWhere = {
+            AND: [whereFilters, { status: 'PAGO' }],
+        };
+        const agg = (where) => this.prisma.accountPayable.aggregate({
+            where,
+            _count: { _all: true },
+            _sum: { value: true },
+        });
+        const [overdue, due7, due3, open, paid] = await Promise.all([
+            agg(overdueWhere),
+            agg(due7Where),
+            agg(due3Where),
+            agg(openWhere),
+            agg(paidWhere),
+        ]);
+        const toResp = (a) => ({
+            count: a._count?._all ?? 0,
+            amount: Number(a._sum?.value ?? 0),
+        });
+        return {
+            overdue: toResp(overdue),
+            due7: toResp(due7),
+            due3: toResp(due3),
+            open: toResp(open),
+            paid: toResp(paid),
             currency: 'BRL',
             generatedAt: new Date().toISOString(),
         };
@@ -411,6 +519,11 @@ function startOfDay(d) {
 function endOfDay(d) {
     const x = new Date(d);
     x.setHours(23, 59, 59, 999);
+    return x;
+}
+function addDays(d, days) {
+    const x = new Date(d);
+    x.setDate(x.getDate() + days);
     return x;
 }
 function computeAlertFields(status, dueDate) {

@@ -21,16 +21,13 @@ import { GetPayablesStatusQueryDto } from './dto/get-payables-status.dto';
 
 @Controller('accounts-payable')
 export class AccountsPayableController {
-  // Injeta o service
   constructor(private readonly accountsPayableService: AccountsPayableService) { }
 
-  // POST /accounts-payable -> cria uma conta
   @Post()
   create(@Body() dto: CreateAccountsPayableDto) {
     return this.accountsPayableService.create(dto);
   }
 
-  // GET /accounts-payable -> lista paginada com filtros
   @Get()
   findAll(
     @Query('page') page?: string,
@@ -52,13 +49,24 @@ export class AccountsPayableController {
     });
   }
 
-  // GET /accounts-payable/reports/status -> relatório VENCIDO/ABERTO/PAGO no período
+  // (NOVO) /summary no formato solicitado
+  @Get('summary')
+  getSummary(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('status') status?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.accountsPayableService.getSummary({ from, to, status, category, search });
+  }
+
+  // Mantido: /reports/status (útil para outros gráficos)
   @Get('reports/status')
   getPayablesStatus(@Query() query: GetPayablesStatusQueryDto) {
     return this.accountsPayableService.getPayablesStatus(query);
   }
 
-  // GET /accounts-payable/reports/month -> relatório mensal agregado por mês
   @Get('reports/month')
   async getMonthlyReport(
     @Query('year') year?: string,
@@ -76,7 +84,6 @@ export class AccountsPayableController {
     );
   }
 
-  // GET /accounts-payable/export-pdf -> exporta lista filtrada em PDF
   @Get('export-pdf')
   async exportListPdf(
     @Res() res: Response,
@@ -96,7 +103,6 @@ export class AccountsPayableController {
       search: search || '',
     });
 
-    // Configura fontes do pdfmake
     const fonts = {
       Roboto: {
         normal: join(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
@@ -107,7 +113,6 @@ export class AccountsPayableController {
     };
     const printer = new (PdfPrinter as any)(fonts);
 
-    // Helpers de formatação
     const brl = (n: number) =>
       `R$ ${Number(n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     const fdate = (d?: Date | string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '-');
@@ -116,7 +121,6 @@ export class AccountsPayableController {
         ? `${acc.currentInstallment}/${acc.installments}`
         : 'Única';
 
-    // Monta tabela principal
     const tableBody = [
       [
         { text: 'Nome', style: 'tableHeader' },
@@ -136,7 +140,6 @@ export class AccountsPayableController {
       ]),
     ];
 
-    // Linha com filtros aplicados
     const filtersLine = [
       month ? `Mês: ${month}` : 'Mês: Todos',
       year ? `Ano: ${year}` : 'Ano: Todos',
@@ -147,7 +150,6 @@ export class AccountsPayableController {
       .filter(Boolean)
       .join(' | ');
 
-    // Definição do documento
     const docDefinition: any = {
       content: [
         { text: 'Relatório - Contas a Pagar', style: 'header', margin: [0, 0, 0, 6] },
@@ -171,7 +173,6 @@ export class AccountsPayableController {
       pageMargins: [20, 30, 20, 30],
     };
 
-    // Gera o PDF em memória e retorna como download
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const chunks: any[] = [];
     pdfDoc.on('data', (c) => chunks.push(c));
@@ -187,12 +188,10 @@ export class AccountsPayableController {
     pdfDoc.end();
   }
 
-  // GET /accounts-payable/:id/export-pdf -> exporta uma conta específica em PDF
   @Get(':id/export-pdf')
   async exportOnePdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const account = await this.accountsPayableService.findOne(id);
 
-    // Configura fontes do pdfmake
     const fonts = {
       Roboto: {
         normal: join(process.cwd(), 'fonts', 'Roboto-Regular.ttf'),
@@ -203,7 +202,6 @@ export class AccountsPayableController {
     };
     const printer = new (PdfPrinter as any)(fonts);
 
-    // Helpers de formatação
     const brl = (n: number) =>
       `R$ ${Number(n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     const fdate = (d?: Date | string) => (d ? new Date(d).toLocaleString('pt-BR') : '-');
@@ -212,7 +210,6 @@ export class AccountsPayableController {
         ? `${account.currentInstallment}/${account.installments}`
         : 'Única';
 
-    // Tabela de detalhes + tabela de pagamentos
     const details = [
       [{ text: 'Nome', bold: true }, account.name ?? '-'],
       [{ text: 'Categoria', bold: true }, account.category ?? '-'],
@@ -239,7 +236,6 @@ export class AccountsPayableController {
         : [[{ text: 'Sem pagamentos registrados', colSpan: 3, italics: true }, {}, {}]]),
     ];
 
-    // Definição do documento
     const docDefinition: any = {
       content: [
         { text: 'Conta a Pagar - Detalhes', style: 'header', margin: [0, 0, 0, 10] },
@@ -269,7 +265,6 @@ export class AccountsPayableController {
       pageMargins: [20, 30, 20, 30],
     };
 
-    // Gera PDF e retorna como download
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const chunks: any[] = [];
     pdfDoc.on('data', (c) => chunks.push(c));
@@ -285,19 +280,16 @@ export class AccountsPayableController {
     pdfDoc.end();
   }
 
-  // GET /accounts-payable/:id -> busca uma conta por ID
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.accountsPayableService.findOne(id);
   }
 
-  // PATCH /accounts-payable/:id -> edita conta / registra pagamentos
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAccountsPayableDto) {
     return this.accountsPayableService.update(id, dto);
   }
 
-  // DELETE /accounts-payable/:id -> remove conta e pagamentos relacionados
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.accountsPayableService.remove(id);

@@ -75,16 +75,26 @@ model AccountPayable {
   recurringChildren   AccountPayable[] @relation("RecurringLink")
 
   payments Payment[]
+
+  // ▶ Índices para acelerar /summary, listagem e relatórios
+  @@index([dueDate])
+  @@index([status, dueDate])
+  @@index([category, dueDate])
 }
 
 model Payment {
-  id         Int            @id @default(autoincrement())
-  accountId  Int
-  account    AccountPayable @relation(fields: [accountId], references: [id])
-  paidAt     DateTime
-  amount     Float?
-  createdAt  DateTime       @default(now())
+  id          Int            @id @default(autoincrement())
+  accountId   Int
+  account     AccountPayable @relation(fields: [accountId], references: [id])
+  paidAt      DateTime
+  amount      Float?
+  createdAt   DateTime       @default(now())
   bankAccount String?
+
+  // ▶ Índices para consultas de histórico/duplicidade
+  @@index([accountId])
+  @@index([paidAt])
+  @@index([accountId, paidAt, amount])
 }
 
 // ========= MODELOS DE SUPORTE =========

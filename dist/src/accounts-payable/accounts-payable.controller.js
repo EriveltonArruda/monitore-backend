@@ -42,6 +42,9 @@ let AccountsPayableController = class AccountsPayableController {
             search: search || '',
         });
     }
+    getSummary(from, to, status, category, search) {
+        return this.accountsPayableService.getSummary({ from, to, status, category, search });
+    }
     getPayablesStatus(query) {
         return this.accountsPayableService.getPayablesStatus(query);
     }
@@ -248,6 +251,17 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AccountsPayableController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('summary'),
+    __param(0, (0, common_1.Query)('from')),
+    __param(1, (0, common_1.Query)('to')),
+    __param(2, (0, common_1.Query)('status')),
+    __param(3, (0, common_1.Query)('category')),
+    __param(4, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", void 0)
+], AccountsPayableController.prototype, "getSummary", null);
 __decorate([
     (0, common_1.Get)('reports/status'),
     __param(0, (0, common_1.Query)()),

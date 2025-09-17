@@ -19,7 +19,6 @@ interface FindAllAccountsParams {
 
 @Injectable()
 export class AccountsPayableService {
-  // Injeta o Prisma para consultar/alterar o banco
   constructor(private prisma: PrismaService) { }
 
   // Cria uma conta a pagar (suporta única, parcelada e recorrente mensal)
@@ -27,25 +26,22 @@ export class AccountsPayableService {
     const { installmentType, dueDate, isRecurring, recurringUntil, installments } =
       createAccountsPayableDto;
 
-    // Se for conta única, zera campos de parcelamento
     if (installmentType === 'UNICA') {
       createAccountsPayableDto.installments = null;
       createAccountsPayableDto.currentInstallment = null;
     }
 
-    // Normaliza dueDate (zera horas)
     if (dueDate) {
       const parsed = new Date(dueDate);
       parsed.setHours(0, 0, 0, 0);
       createAccountsPayableDto.dueDate = parsed;
     }
 
-    // Cria a conta original
     const originalAccount = await this.prisma.accountPayable.create({
       data: createAccountsPayableDto,
     });
 
-    // Gera parcelas futuras quando parcelado (i = 2..N)
+    // Parcelas futuras (2..N)
     if (installmentType === 'PARCELADO' && installments && installments > 1) {
       const baseDueDate = new Date(createAccountsPayableDto.dueDate);
       const originalDay = baseDueDate.getDate();
@@ -69,7 +65,7 @@ export class AccountsPayableService {
       }
     }
 
-    // Gera recorrências mensais até a data limite (recurringUntil)
+    // Recorrência mensal
     if (isRecurring && recurringUntil) {
       const startDate = new Date(createAccountsPayableDto.dueDate);
       const endDate = new Date(recurringUntil);
@@ -113,42 +109,35 @@ export class AccountsPayableService {
     return originalAccount;
   }
 
-  // Lista paginada com filtros (mês/ano, status, categoria, busca) + campos de alerta (daysToDue, alertTag)
+  // Lista paginada com filtros + campos de alerta (daysToDue, alertTag)
   async findAll(params: FindAllAccountsParams) {
     const { page, limit, month, year, status, category, search } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AccountPayableWhereInput = {};
 
-    // Filtro por mês + ano
     if (month && year) {
       const startDate = new Date(Number(year), Number(month) - 1, 1, 0, 0, 0, 0);
       const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
       where.dueDate = { gte: startDate, lte: endDate };
-    }
-    // Filtro por ano inteiro (sem mês)
-    else if (year && !month) {
+    } else if (year && !month) {
       const startDate = new Date(Number(year), 0, 1, 0, 0, 0, 0);
       const endDate = new Date(Number(year), 11, 31, 23, 59, 59, 999);
       where.dueDate = { gte: startDate, lte: endDate };
     }
 
-    // Filtro por status
     if (status && status !== 'TODOS') {
       where.status = status;
     }
 
-    // Filtro por categoria
     if (category && category !== 'TODAS') {
       where.category = category;
     }
 
-    // Busca por nome (contém) — agora case-insensitive
     if (search && search.trim() !== '') {
       where.name = { contains: search.trim(), mode: 'insensitive' };
     }
 
-    // Retorna página de contas + total para paginação
     const [accounts, total] = await this.prisma.$transaction([
       this.prisma.accountPayable.findMany({
         where,
@@ -160,7 +149,6 @@ export class AccountsPayableService {
       this.prisma.accountPayable.count({ where }),
     ]);
 
-    // Acrescenta campos de alerta em cada item
     const enriched = accounts.map((a) => ({
       ...a,
       ...computeAlertFields(a.status, a.dueDate),
@@ -169,7 +157,6 @@ export class AccountsPayableService {
     return { data: enriched, total };
   }
 
-  // Busca por ID (com pagamentos) + campos de alerta; lança 404 se não existir
   async findOne(id: number) {
     const account = await this.prisma.accountPayable.findUnique({
       where: { id },
@@ -180,11 +167,9 @@ export class AccountsPayableService {
       throw new NotFoundException(`Conta com ID #${id} não encontrada.`);
     }
 
-    // Acrescenta campos de alerta
     return { ...account, ...computeAlertFields(account.status, account.dueDate) };
   }
 
-  // Busca detalhada para exportação (mês/ano) + totais (total/paid/pending)
   async findForExportDetailed(
     year: number,
     month: number,
@@ -222,7 +207,7 @@ export class AccountsPayableService {
     return { accounts, totals };
   }
 
-  // Relatório mensal agregado (por mês do ano): total/paid/pending e paginação
+  // Relatório mensal agregado
   async getMonthlyReport(year?: string, category?: string, status?: string, page = 1, limit = 12) {
     const where: Prisma.AccountPayableWhereInput = {};
     if (year) {
@@ -253,7 +238,6 @@ export class AccountsPayableService {
 
       const paidSum = account.payments.reduce((sum, p) => sum + Number(p.amount), 0);
       data.paid += paidSum;
-
       data.pending += Math.max(Number(account.value) - paidSum, 0);
 
       monthsMap.set(month, data);
@@ -272,7 +256,7 @@ export class AccountsPayableService {
     return { data: paginatedData, total, totalPages, currentPage };
   }
 
-  // Atualiza conta; registra pagamento automático/manual; cria próxima parcela se for parcelado
+  // Atualiza + pagamentos + próxima parcela (parcelado)
   async update(id: number, updateAccountsPayableDto: UpdateAccountsPayableDto) {
     const existingAccount = await this.prisma.accountPayable.findUnique({
       where: { id },
@@ -283,7 +267,6 @@ export class AccountsPayableService {
     }
     const prevStatus = existingAccount.status;
 
-    // Normaliza dueDate (zera horas) e separa campos de pagamento dos demais
     const dataToUpdate: any = { ...updateAccountsPayableDto };
     if (updateAccountsPayableDto.dueDate) {
       const d = new Date(updateAccountsPayableDto.dueDate);
@@ -291,16 +274,13 @@ export class AccountsPayableService {
       dataToUpdate.dueDate = d;
     }
 
-    // 🔧 respeitar o status escolhido pelo usuário
     const userExplicitStatusProvided =
       typeof updateAccountsPayableDto.status !== 'undefined';
     const desiredStatus = updateAccountsPayableDto.status;
 
     const { paymentAmount, bankAccount, paidAt, ...accountFields } = dataToUpdate;
 
-    // Transação: atualiza conta + insere pagamento se necessário + gera próxima parcela (condicional)
     return await this.prisma.$transaction(async (prisma) => {
-      // Atualiza campos principais (inclui status desejado se veio no DTO)
       let updatedAccount = await prisma.accountPayable.update({
         where: { id },
         data: accountFields,
@@ -311,7 +291,6 @@ export class AccountsPayableService {
 
       const paymentDate = paidAt ? new Date(paidAt) : new Date();
 
-      // Pagamento manual (valor informado)
       if (paymentAmount) {
         const raw =
           typeof paymentAmount === 'string'
@@ -334,9 +313,7 @@ export class AccountsPayableService {
             totalPaid += parsed;
           }
         }
-      }
-      // Marcou status como PAGO sem valor manual: registra o restante automaticamente
-      else if (prevStatus !== 'PAGO' && desiredStatus === 'PAGO') {
+      } else if (prevStatus !== 'PAGO' && desiredStatus === 'PAGO') {
         const remaining = updatedAccount.value - totalPaid;
         if (remaining > 0) {
           const exists = await prisma.payment.findFirst({
@@ -356,7 +333,6 @@ export class AccountsPayableService {
         }
       }
 
-      // 🔧 Auto-PAGO somente se o usuário não informou status OU escolheu PAGO
       if (
         (!userExplicitStatusProvided || desiredStatus === 'PAGO') &&
         totalPaid >= updatedAccount.value &&
@@ -368,7 +344,6 @@ export class AccountsPayableService {
         });
       }
 
-      // 🔧 Próxima parcela apenas se status final ficou PAGO
       const finalStatus = updatedAccount.status;
       if (
         finalStatus === 'PAGO' &&
@@ -384,7 +359,7 @@ export class AccountsPayableService {
           data: {
             name: existingAccount.name,
             category: existingAccount.category,
-            value: updatedAccount.value, // mantém o mesmo valor
+            value: updatedAccount.value,
             dueDate: nextDue,
             status: 'A_PAGAR',
             installmentType: 'PARCELADO',
@@ -398,14 +373,12 @@ export class AccountsPayableService {
     });
   }
 
-  // Remove conta e seus pagamentos relacionados
   async remove(id: number) {
     await this.findOne(id);
     await this.prisma.payment.deleteMany({ where: { accountId: id } });
     return this.prisma.accountPayable.delete({ where: { id } });
   }
 
-  // Registra um pagamento simples por data e marca a conta como PAGO
   async registerPayment(accountId: number, paidAt: Date) {
     const account = await this.prisma.accountPayable.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Conta a pagar não encontrada.');
@@ -417,12 +390,13 @@ export class AccountsPayableService {
     return this.prisma.payment.create({ data: { accountId, paidAt } });
   }
 
-  // Relatório "Vencido / Pago / Aberto" por período (se omitido, considera TODOS)
+  // -----------------------------
+  // (NOVO) /reports/status (mantido)
+  // -----------------------------
   async getPayablesStatus(query: GetPayablesStatusQueryDto) {
     const now = new Date();
     const hasPeriod = Boolean(query.from && query.to);
 
-    // (CORRIGIDO) Filtro base por data: parse YYYY-MM-DD em horário local (evita UTC drift)
     const baseDateFilter: Prisma.AccountPayableWhereInput | undefined = hasPeriod
       ? {
         dueDate: {
@@ -432,21 +406,18 @@ export class AccountsPayableService {
       }
       : undefined;
 
-    // Filtros opcionais de status/categoria (mesma semântica da listagem)
     const statusFilter =
       query.status && query.status !== 'TODOS' ? { status: query.status } : undefined;
 
     const categoryFilter =
       query.category && query.category !== 'TODAS' ? { category: query.category } : undefined;
 
-    // where comum (sem sobrescrever operadores depois)
     const commonWhere: Prisma.AccountPayableWhereInput = {
       ...(baseDateFilter ?? {}),
       ...(statusFilter ?? {}),
       ...(categoryFilter ?? {}),
     };
 
-    // Buckets com AND para evitar sobrescritas de gte/lte/lt e preservar o range
     const vencidoWhere: Prisma.AccountPayableWhereInput = {
       AND: [
         commonWhere,
@@ -463,13 +434,29 @@ export class AccountsPayableService {
       AND: [
         commonWhere,
         { status: { not: 'PAGO' } },
-        { status: { not: 'VENCIDO' } }, // evita duplicidade
+        { status: { not: 'VENCIDO' } },
         { dueDate: { gte: startOfDay(now) } },
       ],
     };
 
     const pagoWhere: Prisma.AccountPayableWhereInput = {
       AND: [commonWhere, { status: 'PAGO' }],
+    };
+
+    const due7Where: Prisma.AccountPayableWhereInput = {
+      AND: [
+        commonWhere,
+        { status: { not: 'PAGO' } },
+        { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 7)) } },
+      ],
+    };
+
+    const due3Where: Prisma.AccountPayableWhereInput = {
+      AND: [
+        commonWhere,
+        { status: { not: 'PAGO' } },
+        { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 3)) } },
+      ],
     };
 
     const agg = (where: Prisma.AccountPayableWhereInput) =>
@@ -479,11 +466,13 @@ export class AccountsPayableService {
         _sum: { value: true },
       });
 
-    const [vencidoAgg, abertoAgg, pagoAgg, totalAgg] = await Promise.all([
+    const [vencidoAgg, abertoAgg, pagoAgg, totalAgg, due7Agg, due3Agg] = await Promise.all([
       agg(vencidoWhere),
       agg(abertoWhere),
       agg(pagoWhere),
       agg(commonWhere),
+      agg(due7Where),
+      agg(due3Where),
     ]);
 
     return {
@@ -510,7 +499,127 @@ export class AccountsPayableService {
           count: pagoAgg._count?._all ?? 0,
           amount: Number(pagoAgg._sum?.value ?? 0),
         },
+        DUE_7: {
+          count: due7Agg._count?._all ?? 0,
+          amount: Number(due7Agg._sum?.value ?? 0),
+        },
+        DUE_3: {
+          count: due3Agg._count?._all ?? 0,
+          amount: Number(due3Agg._sum?.value ?? 0),
+        },
       },
+      currency: 'BRL',
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  // -----------------------------
+  // (NOVO) /summary (formato pedido)
+  // -----------------------------
+  async getSummary(query: {
+    from?: string;
+    to?: string;
+    status?: string;
+    category?: string;
+    search?: string;
+  }) {
+    const now = new Date();
+
+    // período (opcional)
+    const baseDateFilter: Prisma.AccountPayableWhereInput | undefined =
+      query.from && query.to
+        ? {
+          dueDate: {
+            gte: startOfDay(parseYMDLocal(query.from)),
+            lte: endOfDay(parseYMDLocal(query.to)),
+          },
+        }
+        : undefined;
+
+    // filtros iguais da listagem
+    const whereFilters: Prisma.AccountPayableWhereInput = {
+      ...(baseDateFilter ?? {}),
+    };
+
+    if (query.status && query.status !== 'TODOS') {
+      whereFilters.status = query.status;
+    }
+    if (query.category && query.category !== 'TODAS') {
+      whereFilters.category = query.category;
+    }
+    if (query.search && query.search.trim() !== '') {
+      whereFilters.name = { contains: query.search.trim(), mode: 'insensitive' };
+    }
+
+    // buckets
+    const overdueWhere: Prisma.AccountPayableWhereInput = {
+      AND: [
+        whereFilters,
+        {
+          OR: [
+            { status: 'VENCIDO' },
+            { AND: [{ status: { not: 'PAGO' } }, { dueDate: { lt: startOfDay(now) } }] },
+          ],
+        },
+      ],
+    };
+
+    const due7Where: Prisma.AccountPayableWhereInput = {
+      AND: [
+        whereFilters,
+        { status: { not: 'PAGO' } },
+        { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 7)) } },
+      ],
+    };
+
+    const due3Where: Prisma.AccountPayableWhereInput = {
+      AND: [
+        whereFilters,
+        { status: { not: 'PAGO' } },
+        { dueDate: { gte: startOfDay(now), lte: endOfDay(addDays(now, 3)) } },
+      ],
+    };
+
+    // "open" = não pagos e não vencidos (>= hoje)
+    const openWhere: Prisma.AccountPayableWhereInput = {
+      AND: [
+        whereFilters,
+        { status: { not: 'PAGO' } },
+        { status: { not: 'VENCIDO' } },
+        { dueDate: { gte: startOfDay(now) } },
+      ],
+    };
+
+    const paidWhere: Prisma.AccountPayableWhereInput = {
+      AND: [whereFilters, { status: 'PAGO' }],
+    };
+
+    const agg = (where: Prisma.AccountPayableWhereInput) =>
+      this.prisma.accountPayable.aggregate({
+        where,
+        _count: { _all: true },
+        _sum: { value: true },
+      });
+
+    const [overdue, due7, due3, open, paid] = await Promise.all([
+      agg(overdueWhere),
+      agg(due7Where),
+      agg(due3Where),
+      agg(openWhere),
+      agg(paidWhere),
+    ]);
+
+    const toResp = (a: any) => ({
+      count: a._count?._all ?? 0,
+      amount: Number(a._sum?.value ?? 0),
+    });
+
+    return {
+      overdue: toResp(overdue),
+      due7: toResp(due7),
+      due3: toResp(due3),
+      open: toResp(open),
+      paid: toResp(paid),
       currency: 'BRL',
       generatedAt: new Date().toISOString(),
     };
@@ -518,17 +627,12 @@ export class AccountsPayableService {
 }
 
 /* =========================
-   Utils de data (panorama)
-   - parseYMDLocal: cria Date local a partir de 'YYYY-MM-DD' (evita UTC)
-   - startOfDay / endOfDay: normalizam limites de dia
+   Utils de data
 ========================= */
-
-// Constrói uma Date local a partir de "YYYY-MM-DD" sem cair no UTC (evita drift de fuso)
 function parseYMDLocal(ymd: string): Date {
   const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
-  return new Date(y, m - 1, d); // local time, 00:00:00
+  return new Date(y, m - 1, d); // local midnight
 }
-
 function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -539,11 +643,14 @@ function endOfDay(d: Date) {
   x.setHours(23, 59, 59, 999);
   return x;
 }
+function addDays(d: Date, days: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
 
 /* =========================
-   Util dos ALERTAS (panorama)
-   - Calcula daysToDue e a tag de alerta (VENCIDO / D-3 / D-7 / null)
-   - Não exibe alerta para contas já pagas
+   Util de ALERTAS por item
 ========================= */
 function computeAlertFields(status: string, dueDate: Date | string) {
   const due = new Date(dueDate);
