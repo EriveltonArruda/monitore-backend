@@ -37,46 +37,7 @@ export class ReceivablesService {
     const limit = Number(query.limit ?? 20);
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ReceivableWhereInput = {};
-    const and: Prisma.ReceivableWhereInput[] = [];
-
-    if (query.contractId) and.push({ contractId: Number(query.contractId) });
-    if (query.municipalityId) and.push({ contract: { municipalityId: Number(query.municipalityId) } });
-    if (query.departmentId) and.push({ contract: { departmentId: Number(query.departmentId) } });
-    if (query.status && query.status.trim() !== '') and.push({ status: query.status });
-
-    if (query.search && query.search.trim() !== '') {
-      and.push({
-        OR: [
-          { noteNumber: { contains: query.search.trim(), mode: 'insensitive' } },
-          { periodLabel: { contains: query.search.trim(), mode: 'insensitive' } },
-        ],
-      });
-    }
-
-    // ranges
-    if (query.issueFrom || query.issueTo) {
-      const f: Prisma.DateTimeFilter = {};
-      if (query.issueFrom) f.gte = startOfDay(toLocalDate(query.issueFrom));
-      if (query.issueTo) f.lte = endOfDay(toLocalDate(query.issueTo));
-      and.push({ issueDate: f });
-    }
-
-    if (query.periodFrom || query.periodTo) {
-      const f: Prisma.DateTimeFilter = {};
-      if (query.periodFrom) f.gte = startOfDay(toLocalDate(query.periodFrom));
-      if (query.periodTo) f.lte = endOfDay(toLocalDate(query.periodTo));
-      and.push({ periodStart: f });
-    }
-
-    if (query.receivedFrom || query.receivedTo) {
-      const f: Prisma.DateTimeFilter = {};
-      if (query.receivedFrom) f.gte = startOfDay(toLocalDate(query.receivedFrom));
-      if (query.receivedTo) f.lte = endOfDay(toLocalDate(query.receivedTo));
-      and.push({ receivedAt: f });
-    }
-
-    if (and.length) where.AND = and;
+    const { where } = buildReceivablesWhere(query);
 
     const orderByField = query.orderBy ?? 'issueDate';
     const orderDirection = query.order ?? 'desc';
@@ -166,6 +127,24 @@ export class ReceivablesService {
     await this.prisma.receivable.delete({ where: { id } });
     return { success: true };
   }
+
+  // ======= NOVO: lista para exportação (mesma lógica de filtros, sem paginação) =======
+  async findForExport(query: FindReceivablesDto) {
+    const { where } = buildReceivablesWhere(query);
+
+    const orderByField = query.orderBy ?? 'issueDate';
+    const orderDirection = query.order ?? 'desc';
+
+    const data = await this.prisma.receivable.findMany({
+      where,
+      orderBy: { [orderByField]: orderDirection },
+      include: {
+        contract: { include: { municipality: true, department: true } },
+      },
+    });
+
+    return data;
+  }
 }
 
 /* ===== helpers de data ===== */
@@ -182,4 +161,50 @@ function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
+}
+
+/* ===== builder compartilhado para filtros ===== */
+function buildReceivablesWhere(query: FindReceivablesDto) {
+  const where: Prisma.ReceivableWhereInput = {};
+  const and: Prisma.ReceivableWhereInput[] = [];
+
+  if (query.contractId) and.push({ contractId: Number(query.contractId) });
+  if (query.municipalityId) and.push({ contract: { municipalityId: Number(query.municipalityId) } });
+  if (query.departmentId) and.push({ contract: { departmentId: Number(query.departmentId) } });
+  if (query.status && query.status.trim() !== '') and.push({ status: query.status });
+
+  if (query.search && query.search.trim() !== '') {
+    and.push({
+      OR: [
+        { noteNumber: { contains: query.search.trim(), mode: 'insensitive' } },
+        { periodLabel: { contains: query.search.trim(), mode: 'insensitive' } },
+        { contract: { code: { contains: query.search.trim(), mode: 'insensitive' } } },
+      ],
+    });
+  }
+
+  if (query.issueFrom || query.issueTo) {
+    const f: Prisma.DateTimeFilter = {};
+    if (query.issueFrom) f.gte = startOfDay(toLocalDate(query.issueFrom));
+    if (query.issueTo) f.lte = endOfDay(toLocalDate(query.issueTo));
+    and.push({ issueDate: f });
+  }
+
+  if (query.periodFrom || query.periodTo) {
+    const f: Prisma.DateTimeFilter = {};
+    if (query.periodFrom) f.gte = startOfDay(toLocalDate(query.periodFrom));
+    if (query.periodTo) f.lte = endOfDay(toLocalDate(query.periodTo));
+    and.push({ periodStart: f });
+  }
+
+  if (query.receivedFrom || query.receivedTo) {
+    const f: Prisma.DateTimeFilter = {};
+    if (query.receivedFrom) f.gte = startOfDay(toLocalDate(query.receivedFrom));
+    if (query.receivedTo) f.lte = endOfDay(toLocalDate(query.receivedTo));
+    and.push({ receivedAt: f });
+  }
+
+  if (and.length) where.AND = and;
+
+  return { where };
 }
