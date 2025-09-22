@@ -10,9 +10,9 @@ export declare class ReceivablesController {
         contract: {
             municipality: {
                 id: number;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 cnpj: string | null;
             };
             department: {
@@ -22,22 +22,25 @@ export declare class ReceivablesController {
             } | null;
         } & {
             id: number;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            municipalityId: number;
             code: string;
             description: string | null;
-            municipalityId: number;
             departmentId: number | null;
             startDate: Date | null;
             endDate: Date | null;
             monthlyValue: number | null;
+            status: string;
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
         };
     } & {
         id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
         noteNumber: string | null;
         issueDate: Date | null;
         grossAmount: number | null;
@@ -47,9 +50,6 @@ export declare class ReceivablesController {
         periodEnd: Date | null;
         deliveryDate: Date | null;
         receivedAt: Date | null;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         contractId: number;
     }>;
     findAll(query: FindReceivablesDto): Promise<{
@@ -57,9 +57,9 @@ export declare class ReceivablesController {
             contract: {
                 municipality: {
                     id: number;
+                    name: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    name: string;
                     cnpj: string | null;
                 };
                 department: {
@@ -69,22 +69,25 @@ export declare class ReceivablesController {
                 } | null;
             } & {
                 id: number;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                municipalityId: number;
                 code: string;
                 description: string | null;
-                municipalityId: number;
                 departmentId: number | null;
                 startDate: Date | null;
                 endDate: Date | null;
                 monthlyValue: number | null;
+                status: string;
                 signedAt: Date | null;
                 processNumber: string | null;
                 active: boolean;
             };
         } & {
             id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            status: string;
             noteNumber: string | null;
             issueDate: Date | null;
             grossAmount: number | null;
@@ -94,9 +97,6 @@ export declare class ReceivablesController {
             periodEnd: Date | null;
             deliveryDate: Date | null;
             receivedAt: Date | null;
-            status: string;
-            createdAt: Date;
-            updatedAt: Date;
             contractId: number;
         })[];
         total: number;
@@ -110,9 +110,9 @@ export declare class ReceivablesController {
         contract: {
             municipality: {
                 id: number;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 cnpj: string | null;
             };
             department: {
@@ -122,22 +122,25 @@ export declare class ReceivablesController {
             } | null;
         } & {
             id: number;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            municipalityId: number;
             code: string;
             description: string | null;
-            municipalityId: number;
             departmentId: number | null;
             startDate: Date | null;
             endDate: Date | null;
             monthlyValue: number | null;
+            status: string;
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
         };
     } & {
         id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
         noteNumber: string | null;
         issueDate: Date | null;
         grossAmount: number | null;
@@ -147,18 +150,15 @@ export declare class ReceivablesController {
         periodEnd: Date | null;
         deliveryDate: Date | null;
         receivedAt: Date | null;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         contractId: number;
     }>;
     update(id: number, dto: UpdateReceivableDto): Promise<{
         contract: {
             municipality: {
                 id: number;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 cnpj: string | null;
             };
             department: {
@@ -168,22 +168,25 @@ export declare class ReceivablesController {
             } | null;
         } & {
             id: number;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            municipalityId: number;
             code: string;
             description: string | null;
-            municipalityId: number;
             departmentId: number | null;
             startDate: Date | null;
             endDate: Date | null;
             monthlyValue: number | null;
+            status: string;
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
         };
     } & {
         id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
         noteNumber: string | null;
         issueDate: Date | null;
         grossAmount: number | null;
@@ -193,9 +196,6 @@ export declare class ReceivablesController {
         periodEnd: Date | null;
         deliveryDate: Date | null;
         receivedAt: Date | null;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         contractId: number;
     }>;
     remove(id: number): Promise<{

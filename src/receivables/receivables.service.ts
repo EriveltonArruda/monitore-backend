@@ -174,11 +174,17 @@ function buildReceivablesWhere(query: FindReceivablesDto) {
   if (query.status && query.status.trim() !== '') and.push({ status: query.status });
 
   if (query.search && query.search.trim() !== '') {
+    const q = query.search.trim();
     and.push({
       OR: [
-        { noteNumber: { contains: query.search.trim(), mode: 'insensitive' } },
-        { periodLabel: { contains: query.search.trim(), mode: 'insensitive' } },
-        { contract: { code: { contains: query.search.trim(), mode: 'insensitive' } } },
+        { noteNumber: { contains: q, mode: 'insensitive' } },
+        { periodLabel: { contains: q, mode: 'insensitive' } },
+        // 🔎 código do contrato
+        { contract: { is: { code: { contains: q, mode: 'insensitive' } } } },
+        // 🔎 nome do município
+        { contract: { is: { municipality: { is: { name: { contains: q, mode: 'insensitive' } } } } } },
+        // 🔎 nome do órgão/secretaria
+        { contract: { is: { department: { is: { name: { contains: q, mode: 'insensitive' } } } } } },
       ],
     });
   }
