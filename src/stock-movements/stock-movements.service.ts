@@ -6,6 +6,15 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 
+type ListFilters = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: string;
+  productId?: number;
+  period?: string;
+};
+
 @Injectable()
 export class StockMovementsService {
   constructor(private prisma: PrismaService) { }
@@ -51,53 +60,55 @@ export class StockMovementsService {
     });
   }
 
-  async findAll(params: {
-    page: number,
-    limit: number,
-    search?: string,
-    type?: string,
-    productId?: number,
-    period?: string
-  }) {
-    const { page, limit, search, type, productId, period } = params;
-    const skip = (page - 1) * limit;
+  // ------- build where compartilhado -------
+  private buildWhere(filters: Omit<ListFilters, 'page' | 'limit'>) {
+    const where: any = {};
 
-    let where: any = {};
-
-    // Filtro de busca
-    if (search) {
+    if (filters.search) {
       where.OR = [
-        { details: { contains: search, mode: 'insensitive' } },
-        { notes: { contains: search, mode: 'insensitive' } },
-        { product: { is: { name: { contains: search, mode: 'insensitive' } } } }
+        { details: { contains: filters.search, mode: 'insensitive' } },
+        { notes: { contains: filters.search, mode: 'insensitive' } },
+        { product: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
       ];
     }
 
-    // Filtro por tipo de movimentação
-    if (type) {
-      where.type = type;
+    if (filters.type) {
+      where.type = filters.type;
     }
 
-    // Filtro por produto
-    if (productId) {
-      where.productId = productId;
+    if (filters.productId) {
+      where.productId = filters.productId;
     }
 
-    // Filtro por período
-    if (period) {
+    if (filters.period) {
       const now = new Date();
       let startDate: Date | null = null;
-      if (period === 'today') {
+      if (filters.period === 'today') {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      } else if (period === 'last7') {
+      } else if (filters.period === 'last7') {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      } else if (period === 'last30') {
+      } else if (filters.period === 'last30') {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
       }
       if (startDate) {
         where.createdAt = { gte: startDate };
       }
     }
+
+    return where;
+  }
+
+  async findAll(params: ListFilters) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildWhere({
+      search: params.search,
+      type: params.type,
+      productId: params.productId,
+      period: params.period,
+    });
 
     const [movements, total] = await this.prisma.$transaction([
       this.prisma.stockMovement.findMany({
@@ -113,15 +124,23 @@ export class StockMovementsService {
     return { data: movements, total };
   }
 
-  // ---------- NOVO: Buscar detalhes de uma movimentação ----------
+  // ------- lista sem paginação para PDF -------
+  async findForExport(filters: Omit<ListFilters, 'page' | 'limit'>) {
+    const where = this.buildWhere(filters);
+    const data = await this.prisma.stockMovement.findMany({
+      where,
+      include: { product: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return data;
+  }
+
+  // ---------- Buscar detalhes de uma movimentação ----------
   async findOne(id: number) {
     const movement = await this.prisma.stockMovement.findUnique({
       where: { id },
       include: {
-        product: true, // mantém compatível com o front atual
-        // Se você já tiver relações como "user" ou "attachments", dá pra incluir aqui:
-        // user: true,
-        // attachments: true,
+        product: true,
       },
     });
 
@@ -138,8 +157,7 @@ export class StockMovementsService {
       throw new NotFoundException(`Movimentação com ID #${id} não encontrada.`);
     }
 
-    // Observação: aqui não estamos “desfazendo” o efeito no estoque.
-    // Se quiser reverter, avise que ajusto a lógica de estorno do estoque.
+    // Obs.: não desfaz o estoque. Se quiser estornar, me diga que ajusto a lógica.
     return this.prisma.stockMovement.delete({ where: { id } });
   }
 }

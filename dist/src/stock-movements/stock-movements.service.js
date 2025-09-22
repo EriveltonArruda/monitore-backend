@@ -53,39 +53,49 @@ let StockMovementsService = class StockMovementsService {
             return movement;
         });
     }
-    async findAll(params) {
-        const { page, limit, search, type, productId, period } = params;
-        const skip = (page - 1) * limit;
-        let where = {};
-        if (search) {
+    buildWhere(filters) {
+        const where = {};
+        if (filters.search) {
             where.OR = [
-                { details: { contains: search, mode: 'insensitive' } },
-                { notes: { contains: search, mode: 'insensitive' } },
-                { product: { is: { name: { contains: search, mode: 'insensitive' } } } }
+                { details: { contains: filters.search, mode: 'insensitive' } },
+                { notes: { contains: filters.search, mode: 'insensitive' } },
+                { product: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
             ];
         }
-        if (type) {
-            where.type = type;
+        if (filters.type) {
+            where.type = filters.type;
         }
-        if (productId) {
-            where.productId = productId;
+        if (filters.productId) {
+            where.productId = filters.productId;
         }
-        if (period) {
+        if (filters.period) {
             const now = new Date();
             let startDate = null;
-            if (period === 'today') {
+            if (filters.period === 'today') {
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             }
-            else if (period === 'last7') {
+            else if (filters.period === 'last7') {
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
             }
-            else if (period === 'last30') {
+            else if (filters.period === 'last30') {
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
             }
             if (startDate) {
                 where.createdAt = { gte: startDate };
             }
         }
+        return where;
+    }
+    async findAll(params) {
+        const page = params.page ?? 1;
+        const limit = params.limit ?? 10;
+        const skip = (page - 1) * limit;
+        const where = this.buildWhere({
+            search: params.search,
+            type: params.type,
+            productId: params.productId,
+            period: params.period,
+        });
         const [movements, total] = await this.prisma.$transaction([
             this.prisma.stockMovement.findMany({
                 where,
@@ -97,6 +107,15 @@ let StockMovementsService = class StockMovementsService {
             this.prisma.stockMovement.count({ where }),
         ]);
         return { data: movements, total };
+    }
+    async findForExport(filters) {
+        const where = this.buildWhere(filters);
+        const data = await this.prisma.stockMovement.findMany({
+            where,
+            include: { product: true },
+            orderBy: { createdAt: 'desc' },
+        });
+        return data;
     }
     async findOne(id) {
         const movement = await this.prisma.stockMovement.findUnique({
