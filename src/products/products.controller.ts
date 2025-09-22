@@ -10,13 +10,14 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   BadRequestException,
   Res,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { Response } from 'express';
@@ -211,6 +212,7 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
+  // ========= IMAGEM PRINCIPAL (já existente) =========
   @Post(':id/upload-image')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -242,6 +244,58 @@ export class ProductsController {
   @Delete(':id/main-image')
   async deleteMainImage(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.removeMainImage(id);
+  }
+
+  // ========= NOVO: GALERIA (multi-imagem) =========
+
+  // Lista imagens da galeria do produto
+  @Get(':id/images')
+  listImages(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.listImages(id);
+  }
+
+  // Upload múltiplo de imagens para a galeria
+  @Post(':id/images')
+  @UseInterceptors(
+    FilesInterceptor('files', 12, {
+      storage: diskStorage({
+        destination: './uploads/products',
+        filename: (req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new BadRequestException('Arquivo precisa ser uma imagem'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadGalleryImages(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Nenhum arquivo enviado');
+    }
+    const urls = files.map((f) => `/uploads/products/${f.filename}`);
+    const created = await this.productsService.addImages(id, urls);
+
+    // Se o produto não tiver imagem principal, define a 1ª enviada como principal
+    await this.productsService.ensureMainImage(id, urls[0]).catch(() => { });
+    return created;
+  }
+
+  // Remove uma imagem da galeria
+  @Delete(':id/images/:imageId')
+  async deleteGalleryImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('imageId', ParseIntPipe) imageId: number,
+  ) {
+    // id usado apenas por semântica/restfulness; validação de vínculo é feita no service
+    return this.productsService.removeImage(imageId, id);
   }
 
   @Patch(':id')

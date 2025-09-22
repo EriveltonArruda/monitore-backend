@@ -155,10 +155,63 @@ let ProductsService = class ProductsService {
         catch (error) {
             console.error(error);
             if (error.code === 'P2003' || error.code === 'P2014') {
-                throw new common_1.BadRequestException('Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.');
+                throw new common_1.BadRequestException('Não é possível excluir este produto pois ele está vinculado a movimentações, entradas/saídas de estoque ou possui imagens vinculadas.');
             }
             throw error;
         }
+    }
+    async listImages(productId) {
+        await this.findOne(productId);
+        return this.prisma.productImage.findMany({
+            where: { productId },
+            orderBy: { id: 'desc' },
+            select: { id: true, url: true },
+        });
+    }
+    async addImages(productId, urls) {
+        await this.findOne(productId);
+        if (!urls.length)
+            return [];
+        const created = await this.prisma.$transaction(urls.map((url) => this.prisma.productImage.create({
+            data: { productId, url },
+            select: { id: true, url: true },
+        })));
+        return created;
+    }
+    async ensureMainImage(productId, url) {
+        const p = await this.prisma.product.findUnique({
+            where: { id: productId },
+            select: { mainImageUrl: true },
+        });
+        if (!p)
+            throw new common_1.NotFoundException('Produto não encontrado');
+        if (!p.mainImageUrl) {
+            await this.prisma.product.update({
+                where: { id: productId },
+                data: { mainImageUrl: url },
+            });
+        }
+    }
+    async removeImage(imageId, productId) {
+        const img = await this.prisma.productImage.findUnique({
+            where: { id: imageId },
+            select: { id: true, url: true, productId: true },
+        });
+        if (!img)
+            throw new common_1.NotFoundException('Imagem não encontrada');
+        if (productId && img.productId !== productId) {
+            throw new common_1.ForbiddenException('Imagem não pertence ao produto informado');
+        }
+        await this.prisma.productImage.delete({ where: { id: imageId } });
+        if (img.url && img.url.startsWith('/uploads/products/')) {
+            const absPath = (0, path_1.join)(process.cwd(), img.url.replace(/^\//, ''));
+            try {
+                await fs.unlink(absPath);
+            }
+            catch {
+            }
+        }
+        return { ok: true };
     }
 };
 exports.ProductsService = ProductsService;

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -141,10 +141,77 @@ export class ProductsService {
       console.error(error);
       if (error.code === 'P2003' || error.code === 'P2014') {
         throw new BadRequestException(
-          'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas ou saídas de estoque.',
+          'Não é possível excluir este produto pois ele está vinculado a movimentações, entradas/saídas de estoque ou possui imagens vinculadas.',
         );
       }
       throw error;
     }
+  }
+
+  // ========= GALERIA =========
+
+  async listImages(productId: number) {
+    await this.findOne(productId);
+    return this.prisma.productImage.findMany({
+      where: { productId },
+      orderBy: { id: 'desc' },
+      select: { id: true, url: true },
+    });
+  }
+
+  async addImages(productId: number, urls: string[]) {
+    await this.findOne(productId);
+    if (!urls.length) return [];
+
+    const created = await this.prisma.$transaction(
+      urls.map((url) =>
+        this.prisma.productImage.create({
+          data: { productId, url },
+          select: { id: true, url: true },
+        }),
+      ),
+    );
+    return created;
+  }
+
+  // Se não tiver imagem principal, define a recebida
+  async ensureMainImage(productId: number, url: string) {
+    const p = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { mainImageUrl: true },
+    });
+    if (!p) throw new NotFoundException('Produto não encontrado');
+    if (!p.mainImageUrl) {
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { mainImageUrl: url },
+      });
+    }
+  }
+
+  async removeImage(imageId: number, productId?: number) {
+    const img = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+      select: { id: true, url: true, productId: true },
+    });
+    if (!img) throw new NotFoundException('Imagem não encontrada');
+
+    if (productId && img.productId !== productId) {
+      throw new ForbiddenException('Imagem não pertence ao produto informado');
+    }
+
+    await this.prisma.productImage.delete({ where: { id: imageId } });
+
+    // Remove arquivo físico, se for do diretório esperado
+    if (img.url && img.url.startsWith('/uploads/products/')) {
+      const absPath = join(process.cwd(), img.url.replace(/^\//, ''));
+      try {
+        await fs.unlink(absPath);
+      } catch {
+        // ignora se já não existir
+      }
+    }
+
+    return { ok: true };
   }
 }
