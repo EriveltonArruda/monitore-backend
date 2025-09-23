@@ -190,8 +190,13 @@ export declare class ProductsService {
         url: string;
     }[]>;
     ensureMainImage(productId: number, url: string): Promise<void>;
+    setMainImage(productId: number, imageId: number): Promise<{
+        ok: boolean;
+        mainImageUrl: string;
+    }>;
     removeImage(imageId: number, productId?: number): Promise<{
         ok: boolean;
+        updatedMainImageUrl: string | null | undefined;
     }>;
 }
 export {};

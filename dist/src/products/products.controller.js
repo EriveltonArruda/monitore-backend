@@ -202,6 +202,9 @@ let ProductsController = class ProductsController {
         await this.productsService.ensureMainImage(id, urls[0]).catch(() => { });
         return created;
     }
+    async setMainImage(id, imageId) {
+        return this.productsService.setMainImage(id, imageId);
+    }
     async deleteGalleryImage(id, imageId) {
         return this.productsService.removeImage(imageId, id);
     }
@@ -319,6 +322,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Array]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "uploadGalleryImages", null);
+__decorate([
+    (0, common_1.Patch)(':id/images/:imageId/set-main'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('imageId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "setMainImage", null);
 __decorate([
     (0, common_1.Delete)(':id/images/:imageId'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

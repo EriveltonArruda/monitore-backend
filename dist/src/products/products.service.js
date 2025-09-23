@@ -192,6 +192,22 @@ let ProductsService = class ProductsService {
             });
         }
     }
+    async setMainImage(productId, imageId) {
+        const img = await this.prisma.productImage.findUnique({
+            where: { id: imageId },
+            select: { id: true, url: true, productId: true },
+        });
+        if (!img)
+            throw new common_1.NotFoundException('Imagem não encontrada');
+        if (img.productId !== productId) {
+            throw new common_1.ForbiddenException('Imagem não pertence ao produto informado');
+        }
+        await this.prisma.product.update({
+            where: { id: productId },
+            data: { mainImageUrl: img.url },
+        });
+        return { ok: true, mainImageUrl: img.url };
+    }
     async removeImage(imageId, productId) {
         const img = await this.prisma.productImage.findUnique({
             where: { id: imageId },
@@ -202,6 +218,13 @@ let ProductsService = class ProductsService {
         if (productId && img.productId !== productId) {
             throw new common_1.ForbiddenException('Imagem não pertence ao produto informado');
         }
+        const product = await this.prisma.product.findUnique({
+            where: { id: img.productId },
+            select: { id: true, mainImageUrl: true },
+        });
+        if (!product)
+            throw new common_1.NotFoundException('Produto não encontrado');
+        const isMain = !!product.mainImageUrl && product.mainImageUrl === img.url;
         await this.prisma.productImage.delete({ where: { id: imageId } });
         if (img.url && img.url.startsWith('/uploads/products/')) {
             const absPath = (0, path_1.join)(process.cwd(), img.url.replace(/^\//, ''));
@@ -211,7 +234,20 @@ let ProductsService = class ProductsService {
             catch {
             }
         }
-        return { ok: true };
+        let updatedMain = undefined;
+        if (isMain) {
+            const another = await this.prisma.productImage.findFirst({
+                where: { productId: product.id },
+                orderBy: { id: 'desc' },
+                select: { url: true },
+            });
+            updatedMain = another?.url ?? null;
+            await this.prisma.product.update({
+                where: { id: product.id },
+                data: { mainImageUrl: updatedMain },
+            });
+        }
+        return { ok: true, updatedMainImageUrl: updatedMain };
     }
 };
 exports.ProductsService = ProductsService;

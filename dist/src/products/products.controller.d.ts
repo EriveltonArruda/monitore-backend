@@ -132,8 +132,13 @@ export declare class ProductsController {
         id: number;
         url: string;
     }[]>;
+    setMainImage(id: number, imageId: number): Promise<{
+        ok: boolean;
+        mainImageUrl: string;
+    }>;
     deleteGalleryImage(id: number, imageId: number): Promise<{
         ok: boolean;
+        updatedMainImageUrl: string | null | undefined;
     }>;
     update(id: number, updateProductDto: UpdateProductDto): Promise<{
         id: number;

@@ -98,21 +98,19 @@ export class ProductsService {
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product) throw new NotFoundException('Produto não encontrado');
 
-    const current = product.mainImageUrl; // ex: /uploads/products/arquivo.jpg
+    const current = product.mainImageUrl;
 
-    // 1) Zera no banco
     await this.prisma.product.update({
       where: { id },
       data: { mainImageUrl: null },
     });
 
-    // 2) Tenta excluir o arquivo físico (se for do diretório esperado)
     if (current && current.startsWith('/uploads/products/')) {
-      const absPath = join(process.cwd(), current.replace(/^\//, '')); // uploads/products/...
+      const absPath = join(process.cwd(), current.replace(/^\//, ''));
       try {
         await fs.unlink(absPath);
       } catch {
-        // se já não existir, ignoramos
+        // ignora erro se o arquivo já não existir
       }
     }
 
@@ -174,7 +172,6 @@ export class ProductsService {
     return created;
   }
 
-  // Se não tiver imagem principal, define a recebida
   async ensureMainImage(productId: number, url: string) {
     const p = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -189,6 +186,31 @@ export class ProductsService {
     }
   }
 
+  // >>>>>>>>>>>>>>>>>>>>>>> ADICIONADO <<<<<<<<<<<<<<<<<<<<<<
+  async setMainImage(productId: number, imageId: number) {
+    const img = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+      select: { id: true, url: true, productId: true },
+    });
+    if (!img) throw new NotFoundException('Imagem não encontrada');
+    if (img.productId !== productId) {
+      throw new ForbiddenException('Imagem não pertence ao produto informado');
+    }
+
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: { mainImageUrl: img.url },
+    });
+
+    return { ok: true, mainImageUrl: img.url };
+  }
+  // >>>>>>>>>>>>>>>>>>>>>>> FIM ADIÇÃO <<<<<<<<<<<<<<<<<<<<<<
+
+  /**
+   * Remove uma imagem da galeria e, se ela for a imagem principal do produto,
+   * define automaticamente outra imagem da galeria como principal (se existir).
+   * Retorna { ok: true, updatedMainImageUrl: string | null } para o front atualizar o preview.
+   */
   async removeImage(imageId: number, productId?: number) {
     const img = await this.prisma.productImage.findUnique({
       where: { id: imageId },
@@ -200,9 +222,19 @@ export class ProductsService {
       throw new ForbiddenException('Imagem não pertence ao produto informado');
     }
 
+    // Checar se esta imagem é a principal
+    const product = await this.prisma.product.findUnique({
+      where: { id: img.productId },
+      select: { id: true, mainImageUrl: true },
+    });
+    if (!product) throw new NotFoundException('Produto não encontrado');
+
+    const isMain = !!product.mainImageUrl && product.mainImageUrl === img.url;
+
+    // Remove a imagem (DB)
     await this.prisma.productImage.delete({ where: { id: imageId } });
 
-    // Remove arquivo físico, se for do diretório esperado
+    // Remove arquivo físico, se estiver no diretório esperado
     if (img.url && img.url.startsWith('/uploads/products/')) {
       const absPath = join(process.cwd(), img.url.replace(/^\//, ''));
       try {
@@ -212,6 +244,23 @@ export class ProductsService {
       }
     }
 
-    return { ok: true };
+    let updatedMain: string | null | undefined = undefined;
+
+    if (isMain) {
+      // Tentar promover outra imagem da galeria como principal
+      const another = await this.prisma.productImage.findFirst({
+        where: { productId: product.id },
+        orderBy: { id: 'desc' },
+        select: { url: true },
+      });
+
+      updatedMain = another?.url ?? null;
+      await this.prisma.product.update({
+        where: { id: product.id },
+        data: { mainImageUrl: updatedMain },
+      });
+    }
+
+    return { ok: true, updatedMainImageUrl: updatedMain };
   }
 }

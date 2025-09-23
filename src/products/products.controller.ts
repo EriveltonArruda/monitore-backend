@@ -212,7 +212,7 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
-  // ========= IMAGEM PRINCIPAL (já existente) =========
+  // ========= IMAGEM PRINCIPAL =========
   @Post(':id/upload-image')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -246,15 +246,13 @@ export class ProductsController {
     return this.productsService.removeMainImage(id);
   }
 
-  // ========= NOVO: GALERIA (multi-imagem) =========
+  // ========= GALERIA (multi-imagem) =========
 
-  // Lista imagens da galeria do produto
   @Get(':id/images')
   listImages(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.listImages(id);
   }
 
-  // Upload múltiplo de imagens para a galeria
   @Post(':id/images')
   @UseInterceptors(
     FilesInterceptor('files', 12, {
@@ -283,18 +281,27 @@ export class ProductsController {
     const urls = files.map((f) => `/uploads/products/${f.filename}`);
     const created = await this.productsService.addImages(id, urls);
 
-    // Se o produto não tiver imagem principal, define a 1ª enviada como principal
+    // Se não tiver principal, seta a primeira enviada
     await this.productsService.ensureMainImage(id, urls[0]).catch(() => { });
     return created;
   }
 
-  // Remove uma imagem da galeria
+  // >>>>>>>>>>>>>>>>>>>>>>> ADICIONADO <<<<<<<<<<<<<<<<<<<<<<
+  // Definir uma imagem da galeria como principal
+  @Patch(':id/images/:imageId/set-main')
+  async setMainImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('imageId', ParseIntPipe) imageId: number,
+  ) {
+    return this.productsService.setMainImage(id, imageId);
+  }
+  // >>>>>>>>>>>>>>>>>>>>>>> FIM ADIÇÃO <<<<<<<<<<<<<<<<<<<<<<
+
   @Delete(':id/images/:imageId')
   async deleteGalleryImage(
     @Param('id', ParseIntPipe) id: number,
     @Param('imageId', ParseIntPipe) imageId: number,
   ) {
-    // id usado apenas por semântica/restfulness; validação de vínculo é feita no service
     return this.productsService.removeImage(imageId, id);
   }
 
