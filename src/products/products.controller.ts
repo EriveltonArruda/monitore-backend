@@ -178,7 +178,10 @@ export class ProductsController {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', 'attachment; filename=relatorio-produtos.xlsx');
     res.end(buffer);
   }
@@ -286,7 +289,6 @@ export class ProductsController {
     return created;
   }
 
-  // >>>>>>>>>>>>>>>>>>>>>>> ADICIONADO <<<<<<<<<<<<<<<<<<<<<<
   // Definir uma imagem da galeria como principal
   @Patch(':id/images/:imageId/set-main')
   async setMainImage(
@@ -295,7 +297,6 @@ export class ProductsController {
   ) {
     return this.productsService.setMainImage(id, imageId);
   }
-  // >>>>>>>>>>>>>>>>>>>>>>> FIM ADIÇÃO <<<<<<<<<<<<<<<<<<<<<<
 
   @Delete(':id/images/:imageId')
   async deleteGalleryImage(

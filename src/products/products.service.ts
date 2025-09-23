@@ -186,7 +186,7 @@ export class ProductsService {
     }
   }
 
-  // >>>>>>>>>>>>>>>>>>>>>>> ADICIONADO <<<<<<<<<<<<<<<<<<<<<<
+  // Define imagem da galeria como principal
   async setMainImage(productId: number, imageId: number) {
     const img = await this.prisma.productImage.findUnique({
       where: { id: imageId },
@@ -204,7 +204,6 @@ export class ProductsService {
 
     return { ok: true, mainImageUrl: img.url };
   }
-  // >>>>>>>>>>>>>>>>>>>>>>> FIM ADIÇÃO <<<<<<<<<<<<<<<<<<<<<<
 
   /**
    * Remove uma imagem da galeria e, se ela for a imagem principal do produto,
