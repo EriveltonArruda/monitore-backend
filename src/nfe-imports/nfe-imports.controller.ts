@@ -170,7 +170,6 @@ export class NfeImportsController {
   @Get(':id/pdf')
   async getPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const { abs, filename } = await this.service.getPdfPath(id);
-    // inline para pré-visualização no navegador; mude para "attachment" se quiser baixar sempre
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     res.sendFile(abs);

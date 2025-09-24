@@ -40,7 +40,7 @@ export class NfeImportsService {
           emitterName: true,
           destName: true,
           totalAmount: true,
-          // opcionalmente poderíamos expor pdfPath aqui também
+          // opcional: pdfPath
         },
       }),
       this.prisma.nfeImport.count({ where }),
