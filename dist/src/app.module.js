@@ -27,6 +27,7 @@ const municipalities_module_1 = require("./municipalities/municipalities.module"
 const departments_module_1 = require("./departments/departments.module");
 const contracts_module_1 = require("./contracts/contracts.module");
 const receivables_module_1 = require("./receivables/receivables.module");
+const nfe_imports_module_1 = require("./nfe-imports/nfe-imports.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -50,6 +51,7 @@ exports.AppModule = AppModule = __decorate([
             departments_module_1.DepartmentsModule,
             contracts_module_1.ContractsModule,
             receivables_module_1.ReceivablesModule,
+            nfe_imports_module_1.NfeImportsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
