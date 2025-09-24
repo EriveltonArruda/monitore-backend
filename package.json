@@ -33,6 +33,7 @@
     "class-validator": "^0.14.2",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.2.5",
     "json2csv": "^6.0.0-alpha.2",
     "multer": "^2.0.2",
     "passport": "^0.7.0",

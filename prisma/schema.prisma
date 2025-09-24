@@ -68,11 +68,11 @@ model AccountPayable {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  isRecurring        Boolean   @default(false)
-  recurringUntil     DateTime?
-  recurringSourceId  Int?
-  recurringSource     AccountPayable? @relation("RecurringLink", fields: [recurringSourceId], references: [id])
-  recurringChildren   AccountPayable[] @relation("RecurringLink")
+  isRecurring       Boolean          @default(false)
+  recurringUntil    DateTime?
+  recurringSourceId Int?
+  recurringSource   AccountPayable?  @relation("RecurringLink", fields: [recurringSourceId], references: [id])
+  recurringChildren AccountPayable[] @relation("RecurringLink")
 
   payments Payment[]
 
@@ -150,28 +150,28 @@ model ProductImage {
 }
 
 model TravelExpense {
-  id               Int       @id @default(autoincrement())
-  employeeName     String?
-  department       String?
-  description      String?
-  category         String    @default("OUTROS")   // TRANSPORTE | HOSPEDAGEM | ALIMENTACAO | OUTROS
-  city             String?
-  state            String?
-  expenseDate      DateTime?
-  currency         String?   @default("BRL")
+  id           Int       @id @default(autoincrement())
+  employeeName String?
+  department   String?
+  description  String?
+  category     String    @default("OUTROS") // TRANSPORTE | HOSPEDAGEM | ALIMENTACAO | OUTROS
+  city         String?
+  state        String?
+  expenseDate  DateTime?
+  currency     String?   @default("BRL")
 
   // valores em CENTAVOS para evitar arredondamento no SQLite
-  amountCents      Int
-  reimbursedCents  Int       @default(0)
+  amountCents     Int
+  reimbursedCents Int @default(0)
 
-  status           String    @default("PENDENTE") // PENDENTE | PARCIAL | REEMBOLSADO
-  receiptUrl       String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  status     String   @default("PENDENTE") // PENDENTE | PARCIAL | REEMBOLSADO
+  receiptUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  reimbursements   TravelReimbursement[]
-  advances         TravelAdvance[]      // << novo
-  returns          TravelReturn[]       // << novo
+  reimbursements TravelReimbursement[]
+  advances       TravelAdvance[] // << novo
+  returns        TravelReturn[] // << novo
 
   @@index([expenseDate])
   @@index([status, category])
@@ -179,44 +179,44 @@ model TravelExpense {
 }
 
 model TravelReimbursement {
-  id               Int            @id @default(autoincrement())
-  travelExpenseId  Int
-  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+  id              Int           @id @default(autoincrement())
+  travelExpenseId Int
+  travelExpense   TravelExpense @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
 
   // valor do reembolso em CENTAVOS
-  amountCents      Int
-  reimbursedAt     DateTime       @default(now())
-  bankAccount      String?
-  notes            String?
-  createdAt        DateTime       @default(now())
+  amountCents  Int
+  reimbursedAt DateTime @default(now())
+  bankAccount  String?
+  notes        String?
+  createdAt    DateTime @default(now())
 }
 
 // ========= NOVOS MODELOS =========
 
 model TravelAdvance {
-  id               Int            @id @default(autoincrement())
-  travelExpenseId  Int
-  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+  id              Int           @id @default(autoincrement())
+  travelExpenseId Int
+  travelExpense   TravelExpense @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
 
-  amountCents      Int
-  issuedAt         DateTime       @default(now())
-  method           String?
-  notes            String?
-  createdAt        DateTime       @default(now())
+  amountCents Int
+  issuedAt    DateTime @default(now())
+  method      String?
+  notes       String?
+  createdAt   DateTime @default(now())
 
   @@index([travelExpenseId])
 }
 
 model TravelReturn {
-  id               Int            @id @default(autoincrement())
-  travelExpenseId  Int
-  travelExpense    TravelExpense  @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
+  id              Int           @id @default(autoincrement())
+  travelExpenseId Int
+  travelExpense   TravelExpense @relation(fields: [travelExpenseId], references: [id], onDelete: Cascade)
 
-  amountCents      Int
-  returnedAt       DateTime       @default(now())
-  method           String?
-  notes            String?
-  createdAt        DateTime       @default(now())
+  amountCents Int
+  returnedAt  DateTime @default(now())
+  method      String?
+  notes       String?
+  createdAt   DateTime @default(now())
 
   @@index([travelExpenseId])
 }
@@ -224,53 +224,53 @@ model TravelReturn {
 // ========= NOVOS MODELOS (CONTRATOS & RECEBIDOS) =========
 
 model Municipality {
-  id          Int           @id @default(autoincrement())
-  name        String        @unique
-  cnpj        String?       @unique
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  cnpj      String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   departments Department[]
   contracts   Contract[]
 }
 
 model Department {
-  id             Int           @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   name           String
   municipalityId Int
-  municipality   Municipality  @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+  municipality   Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
 
-  contracts      Contract[]
+  contracts Contract[]
 
   @@unique([municipalityId, name]) // evita órgãos duplicados na mesma prefeitura
   @@index([municipalityId])
 }
 
 model Contract {
-  id             Int           @id @default(autoincrement())
-  code           String        // Ex.: "CT 009/2025"
+  id             Int       @id @default(autoincrement())
+  code           String // Ex.: "CT 009/2025"
   description    String?
   municipalityId Int
   departmentId   Int?
   startDate      DateTime?
   endDate        DateTime?
   monthlyValue   Float?
-  status         String        @default("ATIVO") // ATIVO | ENCERRADO | SUSPENSO
+  status         String    @default("ATIVO") // ATIVO | ENCERRADO | SUSPENSO
   signedAt       DateTime?
   processNumber  String?
-  active         Boolean       @default(true)    // << ADICIONADO
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  active         Boolean   @default(true) // << ADICIONADO
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  municipality   Municipality  @relation(fields: [municipalityId], references: [id])
-  department     Department?   @relation(fields: [departmentId], references: [id])
+  municipality Municipality @relation(fields: [municipalityId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
 
-  receivables    Receivable[]
+  receivables Receivable[]
 
   @@unique([municipalityId, code]) // mesmo código pode existir em outra prefeitura
   @@index([municipalityId])
   @@index([departmentId])
-  @@index([endDate])               // útil para filtros/ordenações por vigência final
+  @@index([endDate]) // útil para filtros/ordenações por vigência final
 }
 
 model Receivable {
@@ -279,7 +279,7 @@ model Receivable {
   issueDate    DateTime?
   grossAmount  Float?
   netAmount    Float?
-  periodLabel  String?   // Ex.: "AGOSTO/2025"
+  periodLabel  String? // Ex.: "AGOSTO/2025"
   periodStart  DateTime?
   periodEnd    DateTime?
   deliveryDate DateTime?
@@ -288,10 +288,51 @@ model Receivable {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  contractId   Int
-  contract     Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@index([contractId])
   @@index([issueDate])
   @@index([status])
+}
+
+// ========= NFE IMPORTS (NOVO) =========
+
+model NfeImport {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  rawXmlPath  String
+  accessKey   String?   @unique
+  number      String?
+  series      String?
+  issueDate   DateTime?
+  emitterCnpj String?
+  emitterName String?
+  destCnpj    String?
+  destName    String?
+  totalAmount Float?
+
+  // 👇 novo
+  pdfPath String?
+
+  items NfeItem[]
+
+  @@index([issueDate])
+  @@index([emitterCnpj, issueDate])
+  @@index([destCnpj, issueDate])
+}
+
+model NfeItem {
+  id          Int       @id @default(autoincrement())
+  nfeImportId Int
+  nfeImport   NfeImport @relation(fields: [nfeImportId], references: [id], onDelete: Cascade)
+
+  productCode String?
+  description String?
+  quantity    Float?
+  unit        String?
+  unitPrice   Float?
+  total       Float?
+
+  @@index([nfeImportId])
 }

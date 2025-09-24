@@ -18,6 +18,7 @@ import { MunicipalitiesModule } from './municipalities/municipalities.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { ReceivablesModule } from './receivables/receivables.module';
+import { NfeImportsModule } from './nfe-imports/nfe-imports.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReceivablesModule } from './receivables/receivables.module';
     DepartmentsModule,
     ContractsModule,
     ReceivablesModule,
+    NfeImportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
