@@ -20,6 +20,12 @@ export enum UserModule {
   CONTATOS = 'CONTATOS',
   USUARIOS = 'USUARIOS',
   DESPESAS_VIAGEM = 'DESPESAS_VIAGEM',
+
+  // ➕ novos módulos usados nas telas recentes
+  MUNICIPIOS = 'MUNICIPIOS',
+  ORGAOS_SECRETARIAS = 'ORGAOS_SECRETARIAS',
+  CONTRATOS = 'CONTRATOS',
+  RECEBIVEIS = 'RECEBIVEIS',
 }
 
 export class CreateUserDto {

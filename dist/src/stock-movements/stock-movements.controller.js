@@ -31,19 +31,24 @@ let StockMovementsController = class StockMovementsController {
         return this.stockMovementsService.create(createStockMovementDto);
     }
     findAll(page, limit, search, type, productId, period) {
+        const first = (v) => Array.isArray(v) ? v[0] : v;
         return this.stockMovementsService.findAll({
-            page: page ? Number(page) : 1,
-            limit: limit ? Number(limit) : 10,
-            search,
-            type,
-            productId: productId ? Number(productId) : undefined,
-            period,
+            page: first(page) ? Number(first(page)) : 1,
+            limit: first(limit) ? Number(first(limit)) : 10,
+            search: first(search),
+            type: first(type),
+            productId: first(productId) ? Number(first(productId)) : undefined,
+            period: first(period),
         });
     }
     async exportListPdf(search, type, productIdStr, period, res) {
-        const productId = productIdStr ? Number(productIdStr) : undefined;
+        const first = (v) => (Array.isArray(v) ? v[0] : v);
+        const productId = first(productIdStr) ? Number(first(productIdStr)) : undefined;
         const rows = await this.stockMovementsService.findForExport({
-            search, type, productId, period,
+            search: first(search),
+            type: first(type),
+            productId,
+            period: first(period),
         });
         const fonts = resolveFontsDir();
         const printer = new pdfmake_1.default({
@@ -81,7 +86,12 @@ let StockMovementsController = class StockMovementsController {
                 [r.details, r.notes].filter(Boolean).join(' / ') || '—',
             ]),
         ];
-        const filtersLine = buildFiltersLine({ search, type, productId, period });
+        const filtersLine = buildFiltersLine({
+            search: first(search),
+            type: first(type),
+            productId,
+            period: first(period),
+        });
         const docDefinition = {
             content: [
                 { text: 'Relatório de Movimentações de Estoque', style: 'h1', margin: [0, 0, 0, 8] },
@@ -207,7 +217,7 @@ __decorate([
     __param(4, (0, common_1.Query)('productId')),
     __param(5, (0, common_1.Query)('period')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], StockMovementsController.prototype, "findAll", null);
 __decorate([

@@ -55,11 +55,17 @@ let StockMovementsService = class StockMovementsService {
     }
     buildWhere(filters) {
         const where = {};
-        if (filters.search) {
+        const raw = filters.search;
+        const q = typeof raw === 'string'
+            ? raw.trim()
+            : Array.isArray(raw)
+                ? String(raw[0] ?? '').trim()
+                : '';
+        if (q) {
             where.OR = [
-                { details: { contains: filters.search, mode: 'insensitive' } },
-                { notes: { contains: filters.search, mode: 'insensitive' } },
-                { product: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
+                { details: { contains: q, mode: 'insensitive' } },
+                { notes: { contains: q, mode: 'insensitive' } },
+                { product: { is: { name: { contains: q, mode: 'insensitive' } } } },
             ];
         }
         if (filters.type) {

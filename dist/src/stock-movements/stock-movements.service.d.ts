@@ -3,7 +3,7 @@ import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 type ListFilters = {
     page?: number;
     limit?: number;
-    search?: string;
+    search?: string | string[];
     type?: string;
     productId?: number;
     period?: string;
@@ -13,8 +13,6 @@ export declare class StockMovementsService {
     constructor(prisma: PrismaService);
     create(createStockMovementDto: CreateStockMovementDto): Promise<{
         id: number;
-        createdAt: Date;
-        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -22,6 +20,8 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        createdAt: Date;
+        productId: number;
         userId: number;
     }>;
     private buildWhere;
@@ -29,26 +29,24 @@ export declare class StockMovementsService {
         data: ({
             product: {
                 id: number;
-                name: string;
                 createdAt: Date;
-                updatedAt: Date;
-                description: string | null;
-                status: string;
+                name: string;
                 sku: string | null;
+                description: string | null;
                 unit: string | null;
+                status: string;
                 stockQuantity: number;
-                costPrice: number | null;
-                categoryId: number | null;
-                supplierId: number | null;
                 minStockQuantity: number;
+                costPrice: number | null;
                 location: string | null;
                 mainImageUrl: string | null;
                 videoUrl: string | null;
+                updatedAt: Date;
+                categoryId: number | null;
+                supplierId: number | null;
             };
         } & {
             id: number;
-            createdAt: Date;
-            productId: number;
             type: string;
             quantity: number;
             details: string | null;
@@ -56,6 +54,8 @@ export declare class StockMovementsService {
             unitPriceAtMovement: number | null;
             notes: string | null;
             document: string | null;
+            createdAt: Date;
+            productId: number;
             userId: number;
         })[];
         total: number;
@@ -63,26 +63,24 @@ export declare class StockMovementsService {
     findForExport(filters: Omit<ListFilters, 'page' | 'limit'>): Promise<({
         product: {
             id: number;
-            name: string;
             createdAt: Date;
-            updatedAt: Date;
-            description: string | null;
-            status: string;
+            name: string;
             sku: string | null;
+            description: string | null;
             unit: string | null;
+            status: string;
             stockQuantity: number;
-            costPrice: number | null;
-            categoryId: number | null;
-            supplierId: number | null;
             minStockQuantity: number;
+            costPrice: number | null;
             location: string | null;
             mainImageUrl: string | null;
             videoUrl: string | null;
+            updatedAt: Date;
+            categoryId: number | null;
+            supplierId: number | null;
         };
     } & {
         id: number;
-        createdAt: Date;
-        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -90,31 +88,31 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        createdAt: Date;
+        productId: number;
         userId: number;
     })[]>;
     findOne(id: number): Promise<{
         product: {
             id: number;
-            name: string;
             createdAt: Date;
-            updatedAt: Date;
-            description: string | null;
-            status: string;
+            name: string;
             sku: string | null;
+            description: string | null;
             unit: string | null;
+            status: string;
             stockQuantity: number;
-            costPrice: number | null;
-            categoryId: number | null;
-            supplierId: number | null;
             minStockQuantity: number;
+            costPrice: number | null;
             location: string | null;
             mainImageUrl: string | null;
             videoUrl: string | null;
+            updatedAt: Date;
+            categoryId: number | null;
+            supplierId: number | null;
         };
     } & {
         id: number;
-        createdAt: Date;
-        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -122,12 +120,12 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        createdAt: Date;
+        productId: number;
         userId: number;
     }>;
     remove(id: number): Promise<{
         id: number;
-        createdAt: Date;
-        productId: number;
         type: string;
         quantity: number;
         details: string | null;
@@ -135,6 +133,8 @@ export declare class StockMovementsService {
         unitPriceAtMovement: number | null;
         notes: string | null;
         document: string | null;
+        createdAt: Date;
+        productId: number;
         userId: number;
     }>;
 }

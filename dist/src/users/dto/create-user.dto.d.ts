@@ -14,7 +14,11 @@ export declare enum UserModule {
     DASHBOARD = "DASHBOARD",
     CONTATOS = "CONTATOS",
     USUARIOS = "USUARIOS",
-    DESPESAS_VIAGEM = "DESPESAS_VIAGEM"
+    DESPESAS_VIAGEM = "DESPESAS_VIAGEM",
+    MUNICIPIOS = "MUNICIPIOS",
+    ORGAOS_SECRETARIAS = "ORGAOS_SECRETARIAS",
+    CONTRATOS = "CONTRATOS",
+    RECEBIVEIS = "RECEBIVEIS"
 }
 export declare class CreateUserDto {
     name: string;

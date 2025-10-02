@@ -1,3 +1,4 @@
+// src/auth/auth.module.ts
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -7,21 +8,29 @@ import { JwtModule } from '@nestjs/jwt';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
-// Esta é a classe do módulo. A palavra 'export' na frente
-// a torna "pública" para que o app.module.ts possa importá-la.
+// ✅ novo: guard de módulos
+import { ModulesGuard } from './guards/modules.guard';
+
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({
-        // Lê o segredo diretamente do arquivo .env
         secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: '1d' }, // Token expira em 1 dia
+        signOptions: { expiresIn: '1d' },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    // ✅ registra o guard para injeção
+    ModulesGuard,
+  ],
+  // ✅ exporta para ser usado em outros módulos (opcional, mas recomendado)
+  exports: [ModulesGuard],
 })
-export class AuthModule {}
+export class AuthModule { }

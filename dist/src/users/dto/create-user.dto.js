@@ -30,6 +30,10 @@ var UserModule;
     UserModule["CONTATOS"] = "CONTATOS";
     UserModule["USUARIOS"] = "USUARIOS";
     UserModule["DESPESAS_VIAGEM"] = "DESPESAS_VIAGEM";
+    UserModule["MUNICIPIOS"] = "MUNICIPIOS";
+    UserModule["ORGAOS_SECRETARIAS"] = "ORGAOS_SECRETARIAS";
+    UserModule["CONTRATOS"] = "CONTRATOS";
+    UserModule["RECEBIVEIS"] = "RECEBIVEIS";
 })(UserModule || (exports.UserModule = UserModule = {}));
 class CreateUserDto {
     name;

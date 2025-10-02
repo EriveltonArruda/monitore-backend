@@ -27,36 +27,44 @@ export class StockMovementsController {
 
   @Get()
   findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-    @Query('type') type?: string,
-    @Query('productId') productId?: string,
-    @Query('period') period?: string
+    @Query('page') page?: string | string[],
+    @Query('limit') limit?: string | string[],
+    @Query('search') search?: string | string[],
+    @Query('type') type?: string | string[],
+    @Query('productId') productId?: string | string[],
+    @Query('period') period?: string | string[],
   ) {
+    // 👇 Normalize (pega só o primeiro se vier array)
+    const first = (v?: string | string[]) =>
+      Array.isArray(v) ? v[0] : v;
+
     return this.stockMovementsService.findAll({
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
-      search,
-      type,
-      productId: productId ? Number(productId) : undefined,
-      period,
+      page: first(page) ? Number(first(page)) : 1,
+      limit: first(limit) ? Number(first(limit)) : 10,
+      search: first(search),
+      type: first(type),
+      productId: first(productId) ? Number(first(productId)) : undefined,
+      period: first(period),
     });
   }
 
   // ---------- EXPORTA PDF (LISTA COMPLETA COM FILTROS) ----------
   @Get('export-pdf')
   async exportListPdf(
-    @Query('search') search: string | undefined,
-    @Query('type') type: string | undefined,
-    @Query('productId') productIdStr: string | undefined,
-    @Query('period') period: string | undefined,
+    @Query('search') search: string | string[] | undefined,
+    @Query('type') type: string | string[] | undefined,
+    @Query('productId') productIdStr: string | string[] | undefined,
+    @Query('period') period: string | string[] | undefined,
     @Res() res: Response,
   ) {
-    const productId = productIdStr ? Number(productIdStr) : undefined;
+    const first = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
+    const productId = first(productIdStr) ? Number(first(productIdStr)) : undefined;
 
     const rows = await this.stockMovementsService.findForExport({
-      search, type, productId, period,
+      search: first(search),
+      type: first(type),
+      productId,
+      period: first(period),
     });
 
     const fonts = resolveFontsDir();
@@ -101,7 +109,12 @@ export class StockMovementsController {
       ]),
     ];
 
-    const filtersLine = buildFiltersLine({ search, type, productId, period });
+    const filtersLine = buildFiltersLine({
+      search: first(search),
+      type: first(type),
+      productId,
+      period: first(period),
+    });
 
     const docDefinition: any = {
       content: [

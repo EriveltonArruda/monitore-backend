@@ -9,7 +9,7 @@ import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 type ListFilters = {
   page?: number;
   limit?: number;
-  search?: string;
+  search?: string | string[]; // 👈 pode vir array, vamos sanitizar
   type?: string;
   productId?: number;
   period?: string;
@@ -64,11 +64,20 @@ export class StockMovementsService {
   private buildWhere(filters: Omit<ListFilters, 'page' | 'limit'>) {
     const where: any = {};
 
-    if (filters.search) {
+    // 👇 Sanitiza `search` (string | string[] -> string)
+    const raw = filters.search;
+    const q =
+      typeof raw === 'string'
+        ? raw.trim()
+        : Array.isArray(raw)
+          ? String(raw[0] ?? '').trim()
+          : '';
+
+    if (q) {
       where.OR = [
-        { details: { contains: filters.search, mode: 'insensitive' } },
-        { notes: { contains: filters.search, mode: 'insensitive' } },
-        { product: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
+        { details: { contains: q, mode: 'insensitive' } },
+        { notes: { contains: q, mode: 'insensitive' } },
+        { product: { is: { name: { contains: q, mode: 'insensitive' } } } },
       ];
     }
 
@@ -157,7 +166,7 @@ export class StockMovementsService {
       throw new NotFoundException(`Movimentação com ID #${id} não encontrada.`);
     }
 
-    // Obs.: não desfaz o estoque. Se quiser estornar, me diga que ajusto a lógica.
+    // Obs.: não desfaz o estoque. Se quiser estornar, me avisa que ajusto.
     return this.prisma.stockMovement.delete({ where: { id } });
   }
 }
