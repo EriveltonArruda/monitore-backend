@@ -36,7 +36,7 @@ export class ReceivablesController {
   // ---------- EXPORTA PDF (LISTA COMPLETA COM FILTROS) ----------
   @Get('export-pdf')
   async exportListPdf(@Query() query: FindReceivablesDto, @Res() res: Response) {
-    // vamos buscar tudo com os filtros informados, ignorando paginação
+    // busca tudo com filtros (sem paginação) e já recebe status derivado do service
     const fullQuery: FindReceivablesDto = { ...query, page: 1 as any, limit: 100000 as any };
     const { data: rows } = await this.receivablesService.findAll(fullQuery);
 
@@ -229,15 +229,12 @@ export class ReceivablesController {
    Helpers
 ========================= */
 function resolveFontsDir(): string {
-  // Prioriza pasta "fonts" na raiz do projeto (dev)
   const devDir = join(process.cwd(), 'fonts');
   if (existsSync(devDir)) return devDir;
 
-  // Alternativa: quando compilado, suba dois níveis a partir do arquivo atual
   const distDir = resolve(__dirname, '..', '..', 'fonts');
   if (existsSync(distDir)) return distDir;
 
-  // Último fallback: current working dir (para ambientes peculiares)
   return process.cwd();
 }
 

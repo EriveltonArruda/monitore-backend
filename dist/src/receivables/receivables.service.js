@@ -31,12 +31,13 @@ let ReceivablesService = class ReceivablesService {
             receivedAt: dto.receivedAt ? new Date(dto.receivedAt) : null,
             status: dto.status ?? 'A_RECEBER',
         };
-        return this.prisma.receivable.create({
+        const row = await this.prisma.receivable.create({
             data,
             include: {
                 contract: { include: { municipality: true, department: true } },
             },
         });
+        return withDerivedStatus(row);
     }
     async findAll(query) {
         const page = Number(query.page ?? 1);
@@ -57,8 +58,9 @@ let ReceivablesService = class ReceivablesService {
             }),
             this.prisma.receivable.count({ where }),
         ]);
+        const mapped = data.map(withDerivedStatus);
         return {
-            data,
+            data: mapped,
             total,
             page,
             limit,
@@ -72,7 +74,7 @@ let ReceivablesService = class ReceivablesService {
         });
         if (!row)
             throw new common_1.NotFoundException('Recebível não encontrado.');
-        return row;
+        return withDerivedStatus(row);
     }
     async update(id, dto) {
         await this.findOne(id);
@@ -109,11 +111,12 @@ let ReceivablesService = class ReceivablesService {
                 : undefined,
             status: dto.status ?? undefined,
         };
-        return this.prisma.receivable.update({
+        const updated = await this.prisma.receivable.update({
             where: { id },
             data,
             include: { contract: { include: { municipality: true, department: true } } },
         });
+        return withDerivedStatus(updated);
     }
     async remove(id) {
         await this.findOne(id);
@@ -131,7 +134,7 @@ let ReceivablesService = class ReceivablesService {
                 contract: { include: { municipality: true, department: true } },
             },
         });
-        return data;
+        return data.map(withDerivedStatus);
     }
 };
 exports.ReceivablesService = ReceivablesService;
@@ -152,6 +155,49 @@ function endOfDay(d) {
     const x = new Date(d);
     x.setHours(23, 59, 59, 999);
     return x;
+}
+function startOfMonth(d) {
+    return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+function endOfMonth(d) {
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+function withDerivedStatus(row) {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const toDate = (v) => v ? new Date(v) : null;
+    const receivedAt = toDate(row.receivedAt);
+    if (receivedAt) {
+        return { ...row, status: 'RECEBIDO' };
+    }
+    let effectiveStart = toDate(row.periodStart);
+    let effectiveEnd = toDate(row.periodEnd);
+    if (!effectiveStart && !effectiveEnd) {
+        const issue = toDate(row.issueDate);
+        if (issue) {
+            effectiveStart = startOfMonth(issue);
+            effectiveEnd = endOfMonth(issue);
+        }
+    }
+    if (!effectiveStart && !effectiveEnd) {
+        return row;
+    }
+    if (effectiveStart && !effectiveEnd)
+        effectiveEnd = endOfMonth(effectiveStart);
+    if (!effectiveStart && effectiveEnd)
+        effectiveStart = startOfMonth(effectiveEnd);
+    const isCurrentMonth = effectiveStart <= monthEnd && effectiveEnd >= monthStart;
+    const isPast = effectiveEnd < monthStart;
+    const isFuture = effectiveStart > monthEnd;
+    let derived = 'A_RECEBER';
+    if (isCurrentMonth)
+        derived = 'ABERTO';
+    else if (isPast)
+        derived = 'ATRASADO';
+    else if (isFuture)
+        derived = 'A_RECEBER';
+    return { ...row, status: derived };
 }
 function buildReceivablesWhere(query) {
     const where = {};

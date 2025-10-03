@@ -24,12 +24,13 @@ export class ReceivablesService {
       status: dto.status ?? 'A_RECEBER',
     };
 
-    return this.prisma.receivable.create({
+    const row = await this.prisma.receivable.create({
       data,
       include: {
         contract: { include: { municipality: true, department: true } },
       },
     });
+    return withDerivedStatus(row);
   }
 
   async findAll(query: FindReceivablesDto) {
@@ -55,8 +56,10 @@ export class ReceivablesService {
       this.prisma.receivable.count({ where }),
     ]);
 
+    const mapped = data.map(withDerivedStatus);
+
     return {
-      data,
+      data: mapped,
       total,
       page,
       limit,
@@ -70,7 +73,7 @@ export class ReceivablesService {
       include: { contract: { include: { municipality: true, department: true } } },
     });
     if (!row) throw new NotFoundException('Recebível não encontrado.');
-    return row;
+    return withDerivedStatus(row);
   }
 
   async update(id: number, dto: UpdateReceivableDto) {
@@ -115,11 +118,13 @@ export class ReceivablesService {
       status: dto.status ?? undefined,
     };
 
-    return this.prisma.receivable.update({
+    const updated = await this.prisma.receivable.update({
       where: { id },
       data,
       include: { contract: { include: { municipality: true, department: true } } },
     });
+
+    return withDerivedStatus(updated);
   }
 
   async remove(id: number) {
@@ -128,7 +133,7 @@ export class ReceivablesService {
     return { success: true };
   }
 
-  // ======= NOVO: lista para exportação (mesma lógica de filtros, sem paginação) =======
+  // ======= lista para exportação (sem paginação) =======
   async findForExport(query: FindReceivablesDto) {
     const { where } = buildReceivablesWhere(query);
 
@@ -143,7 +148,7 @@ export class ReceivablesService {
       },
     });
 
-    return data;
+    return data.map(withDerivedStatus);
   }
 }
 
@@ -162,6 +167,69 @@ function endOfDay(d: Date) {
   x.setHours(23, 59, 59, 999);
   return x;
 }
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+/* ===== Tipagem auxiliar p/ status derivado ===== */
+type DerivableReceivable = {
+  receivedAt: Date | string | null;
+  issueDate: Date | string | null;
+  periodStart: Date | string | null;
+  periodEnd: Date | string | null;
+  status?: string | null;
+  // mantém os demais campos sem perder inferência
+  [key: string]: any;
+};
+
+/* ===== regra de status derivado (só para exibição) ===== */
+function withDerivedStatus<T extends DerivableReceivable>(row: T): T {
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const toDate = (v: Date | string | null) =>
+    v ? new Date(v as any) : null;
+
+  const receivedAt = toDate(row.receivedAt);
+
+  if (receivedAt) {
+    return { ...row, status: 'RECEBIDO' } as T;
+  }
+
+  let effectiveStart = toDate(row.periodStart);
+  let effectiveEnd = toDate(row.periodEnd);
+
+  if (!effectiveStart && !effectiveEnd) {
+    const issue = toDate(row.issueDate);
+    if (issue) {
+      effectiveStart = startOfMonth(issue);
+      effectiveEnd = endOfMonth(issue);
+    }
+  }
+
+  if (!effectiveStart && !effectiveEnd) {
+    return row; // sem dados de período/issueDate -> mantém status original
+  }
+
+  if (effectiveStart && !effectiveEnd) effectiveEnd = endOfMonth(effectiveStart);
+  if (!effectiveStart && effectiveEnd) effectiveStart = startOfMonth(effectiveEnd);
+
+  const isCurrentMonth =
+    effectiveStart! <= monthEnd && effectiveEnd! >= monthStart;
+  const isPast = effectiveEnd! < monthStart;
+  const isFuture = effectiveStart! > monthEnd;
+
+  let derived: 'ABERTO' | 'ATRASADO' | 'A_RECEBER' = 'A_RECEBER';
+  if (isCurrentMonth) derived = 'ABERTO';
+  else if (isPast) derived = 'ATRASADO';
+  else if (isFuture) derived = 'A_RECEBER';
+
+  return { ...row, status: derived } as T;
+}
 
 /* ===== builder compartilhado para filtros ===== */
 function buildReceivablesWhere(query: FindReceivablesDto) {
@@ -171,6 +239,8 @@ function buildReceivablesWhere(query: FindReceivablesDto) {
   if (query.contractId) and.push({ contractId: Number(query.contractId) });
   if (query.municipalityId) and.push({ contract: { municipalityId: Number(query.municipalityId) } });
   if (query.departmentId) and.push({ contract: { departmentId: Number(query.departmentId) } });
+
+  // Mantemos o filtro por status do banco (compatibilidade)
   if (query.status && query.status.trim() !== '') and.push({ status: query.status });
 
   if (query.search && query.search.trim() !== '') {
@@ -179,11 +249,8 @@ function buildReceivablesWhere(query: FindReceivablesDto) {
       OR: [
         { noteNumber: { contains: q, mode: 'insensitive' } },
         { periodLabel: { contains: q, mode: 'insensitive' } },
-        // 🔎 código do contrato
         { contract: { is: { code: { contains: q, mode: 'insensitive' } } } },
-        // 🔎 nome do município
         { contract: { is: { municipality: { is: { name: { contains: q, mode: 'insensitive' } } } } } },
-        // 🔎 nome do órgão/secretaria
         { contract: { is: { department: { is: { name: { contains: q, mode: 'insensitive' } } } } } },
       ],
     });
