@@ -20,8 +20,7 @@ class UpdateContractDto {
     endDate;
     monthlyValue;
     active;
-    notes;
-    alertThresholdDays;
+    status;
 }
 exports.UpdateContractDto = UpdateContractDto;
 __decorate([
@@ -67,11 +66,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['ATIVO', 'ENCERRADO', 'SUSPENSO', 'PENDENTE']),
     __metadata("design:type", String)
-], UpdateContractDto.prototype, "notes", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsInt)(),
-    __metadata("design:type", Number)
-], UpdateContractDto.prototype, "alertThresholdDays", void 0);
+], UpdateContractDto.prototype, "status", void 0);
 //# sourceMappingURL=update-contract.dto.js.map

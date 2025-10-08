@@ -7,6 +7,5 @@ export declare class CreateContractDto {
     endDate?: string;
     monthlyValue?: number;
     active?: boolean;
-    notes?: string;
-    alertThresholdDays?: number;
+    status?: 'ATIVO' | 'ENCERRADO' | 'SUSPENSO' | 'PENDENTE';
 }

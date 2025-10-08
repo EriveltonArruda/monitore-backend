@@ -1,4 +1,12 @@
-import { IsBoolean, IsDateString, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateContractDto {
   @IsString()
@@ -29,13 +37,11 @@ export class CreateContractDto {
 
   @IsOptional()
   @IsBoolean()
-  active?: boolean;   // 👈 mudou de isActive para active
+  active?: boolean;
 
+  // ⬇️ agora inclui PENDENTE
   @IsOptional()
   @IsString()
-  notes?: string;     // 👈 campo do schema
-
-  @IsOptional()
-  @IsInt()
-  alertThresholdDays?: number;  // 👈 campo opcional do schema
+  @IsIn(['ATIVO', 'ENCERRADO', 'SUSPENSO', 'PENDENTE'])
+  status?: 'ATIVO' | 'ENCERRADO' | 'SUSPENSO' | 'PENDENTE';
 }

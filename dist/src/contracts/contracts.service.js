@@ -26,6 +26,8 @@ let ContractsService = class ContractsService {
             startDate: dto.startDate ? new Date(dto.startDate) : null,
             endDate: dto.endDate ? new Date(dto.endDate) : null,
             monthlyValue: dto.monthlyValue ?? null,
+            active: dto.active !== undefined ? dto.active : undefined,
+            status: dto.status ? dto.status.toUpperCase() : undefined,
         };
         const created = await this.prisma.contract.create({
             data,
@@ -37,7 +39,7 @@ let ContractsService = class ContractsService {
         };
     }
     async findAll(query) {
-        const { page = 1, limit = 10, municipalityId, departmentId, search, endFrom, endTo, dueInDays, expiredOnly, order = 'asc' } = query;
+        const { page = 1, limit = 10, municipalityId, departmentId, search, endFrom, endTo, dueInDays, expiredOnly, order = 'asc', } = query;
         const where = {};
         const and = [];
         if (municipalityId)
@@ -127,6 +129,8 @@ let ContractsService = class ContractsService {
                     : null
                 : undefined,
             monthlyValue: dto.monthlyValue ?? undefined,
+            active: dto.active !== undefined ? dto.active : undefined,
+            status: dto.status ? dto.status.toUpperCase() : undefined,
         };
         const updated = await this.prisma.contract.update({
             where: { id },
@@ -180,8 +184,6 @@ function computeAlert(endDate, thresholdDays = 30) {
         alertTag = 'EXPIRADO';
     else if (daysToEnd === 0)
         alertTag = 'HOJE';
-    else if (daysToEnd <= 7)
-        alertTag = 'D-7';
     else if (daysToEnd <= thresholdDays)
         alertTag = 'D-30';
     return { daysToEnd, alertTag };

@@ -19,7 +19,12 @@ export class ContractsService {
       startDate: dto.startDate ? new Date(dto.startDate) : null,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
       monthlyValue: dto.monthlyValue ?? null,
-      // OBS: sem active/notes/alertThresholdDays porque não existem no schema atual
+
+      // não envie null; se undefined, Prisma aplica o default (true)
+      active: dto.active !== undefined ? dto.active : undefined,
+
+      // normaliza para UPPER; se undefined, Prisma usa default "ATIVO"
+      status: dto.status ? (dto.status.toUpperCase() as any) : undefined,
     };
 
     const created = await this.prisma.contract.create({
@@ -41,12 +46,11 @@ export class ContractsService {
       municipalityId,
       departmentId,
       search,
-      // active,  // <- não existe no schema atual
       endFrom,
       endTo,
-      dueInDays,    // número
-      expiredOnly,  // 'true'
-      order = 'asc' // 'asc' | 'desc' por endDate
+      dueInDays,
+      expiredOnly,
+      order = 'asc',
     } = query;
 
     const where: Prisma.ContractWhereInput = {};
@@ -60,23 +64,20 @@ export class ContractsService {
         OR: [
           { code: { contains: search.trim(), mode: 'insensitive' } },
           { description: { contains: search.trim(), mode: 'insensitive' } },
-          // OBS: sem notes no filtro
+          // { status: { contains: search.trim(), mode: 'insensitive' } }, // opcional
         ],
       });
     }
 
-    // Janela por endDate
     const endRange: Prisma.DateTimeFilter = {};
     if (endFrom) endRange.gte = startOfDay(toLocalDate(endFrom));
     if (endTo) endRange.lte = endOfDay(toLocalDate(endTo));
     if (Object.keys(endRange).length > 0) and.push({ endDate: endRange });
 
-    // Apenas expirados
     if (expiredOnly && expiredOnly.toString().toLowerCase() === 'true') {
       and.push({ endDate: { lt: startOfDay(new Date()) } });
     }
 
-    // Vencendo nos próximos X dias
     if (typeof dueInDays === 'number' && dueInDays > 0) {
       const today = startOfDay(new Date());
       const limitDate = endOfDay(addDays(today, dueInDays));
@@ -152,7 +153,10 @@ export class ContractsService {
             : null
           : undefined,
       monthlyValue: dto.monthlyValue ?? undefined,
-      // OBS: sem active/notes/alertThresholdDays porque não existem no schema atual
+
+      // só atualiza se vier no DTO
+      active: dto.active !== undefined ? dto.active : undefined,
+      status: dto.status ? (dto.status.toUpperCase() as any) : undefined,
     };
 
     const updated = await this.prisma.contract.update({
@@ -211,7 +215,6 @@ function computeAlert(endDate: Date | null, thresholdDays = 30) {
   let alertTag: 'EXPIRADO' | 'D-7' | 'D-30' | 'HOJE' | null = null;
   if (daysToEnd < 0) alertTag = 'EXPIRADO';
   else if (daysToEnd === 0) alertTag = 'HOJE';
-  else if (daysToEnd <= 7) alertTag = 'D-7';
   else if (daysToEnd <= thresholdDays) alertTag = 'D-30';
 
   return { daysToEnd, alertTag };
