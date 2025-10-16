@@ -1,15 +1,13 @@
-import { IsNumber, IsOptional, IsString, IsDateString, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+// src/travel-expenses/dto/create-reimbursement.dto.ts
+import { IsDefined, IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class CreateReimbursementDto {
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.01, { message: 'Valor do reembolso deve ser maior que zero' })
-  amount!: number; // em reais
+  @IsDefined({ message: 'amount é obrigatório' })
+  amount!: number | string; // aceita "1.234,56", "1234.56" ou number
 
   @IsOptional()
-  @IsDateString()
-  reimbursedAt?: string; // yyyy-mm-dd
+  @IsDateString({}, { message: 'reimbursedAt deve estar em formato ISO (yyyy-mm-dd)' })
+  reimbursedAt?: string;
 
   @IsOptional()
   @IsString()

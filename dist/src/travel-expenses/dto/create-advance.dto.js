@@ -9,32 +9,32 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateReimbursementDto = void 0;
+exports.CreateAdvanceDto = void 0;
 const class_validator_1 = require("class-validator");
-class CreateReimbursementDto {
+class CreateAdvanceDto {
     amount;
-    reimbursedAt;
-    bankAccount;
+    issuedAt;
+    method;
     notes;
 }
-exports.CreateReimbursementDto = CreateReimbursementDto;
+exports.CreateAdvanceDto = CreateAdvanceDto;
 __decorate([
     (0, class_validator_1.IsDefined)({ message: 'amount é obrigatório' }),
     __metadata("design:type", Object)
-], CreateReimbursementDto.prototype, "amount", void 0);
+], CreateAdvanceDto.prototype, "amount", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsDateString)({}, { message: 'reimbursedAt deve estar em formato ISO (yyyy-mm-dd)' }),
+    (0, class_validator_1.IsDateString)({}, { message: 'issuedAt deve estar em formato ISO (yyyy-mm-dd)' }),
     __metadata("design:type", String)
-], CreateReimbursementDto.prototype, "reimbursedAt", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateReimbursementDto.prototype, "bankAccount", void 0);
+], CreateAdvanceDto.prototype, "issuedAt", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], CreateReimbursementDto.prototype, "notes", void 0);
-//# sourceMappingURL=create-reimbursement.dto.js.map
+], CreateAdvanceDto.prototype, "method", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAdvanceDto.prototype, "notes", void 0);
+//# sourceMappingURL=create-advance.dto.js.map

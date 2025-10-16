@@ -1,3 +1,4 @@
+// src/travel-expenses/travel-expenses.controller.ts
 import {
   Controller,
   Get,
@@ -15,6 +16,8 @@ import { TravelExpensesService } from './travel-expenses.service';
 import { CreateTravelExpenseDto } from './dto/create-travel-expense.dto';
 import { UpdateTravelExpenseDto } from './dto/update-travel-expense.dto';
 import { CreateReimbursementDto } from './dto/create-reimbursement.dto';
+import { CreateAdvanceDto } from './dto/create-advance.dto';
+import { CreateReturnDto } from './dto/create-return.dto';
 
 @Controller('travel-expenses')
 export class TravelExpensesController {
@@ -32,57 +35,7 @@ export class TravelExpensesController {
     return `${base}.${ext}`;
   }
 
-  // ---------- CRUD base ----------
-  // Criar nova despesa
-  @Post()
-  create(@Body() dto: CreateTravelExpenseDto) {
-    return this.service.create(dto);
-  }
-
-  // Listar despesas (com filtros opcionais)
-  @Get()
-  findAll(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('month') month?: string,
-    @Query('year') year?: string,
-    @Query('status') status?: string,
-    @Query('category') category?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.service.findAll({
-      page: page ? Number(page) : undefined,
-      pageSize: pageSize ? Number(pageSize) : undefined,
-      month: month ? Number(month) : undefined,
-      year: year ? Number(year) : undefined,
-      status,
-      category,
-      search,
-    });
-  }
-
-  // Buscar despesa específica (com histórico)
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
-  }
-
-  // Atualizar despesa
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateTravelExpenseDto,
-  ) {
-    return this.service.update(id, dto);
-  }
-
-  // Excluir despesa
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(id);
-  }
-
-  // ---------- Exportações ----------
+  // ---------- Exportações (definidas antes das rotas com :id para evitar conflito) ----------
   @Get('export-csv')
   async exportCsv(@Query() query: any, @Res() res: Response) {
     const filename = this.buildExportFilename(query, 'csv');
@@ -111,6 +64,48 @@ export class TravelExpensesController {
       'Cache-Control': 'no-store',
     });
     res.end(buffer);
+  }
+
+  // ---------- CRUD base ----------
+  @Post()
+  create(@Body() dto: CreateTravelExpenseDto) {
+    return this.service.create(dto);
+  }
+
+  @Get()
+  findAll(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+    @Query('status') status?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.service.findAll({
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      month: month ? Number(month) : undefined,
+      year: year ? Number(year) : undefined,
+      status,
+      category,
+      search,
+    });
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTravelExpenseDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 
   // ---------- Reembolsos ----------
@@ -142,16 +137,7 @@ export class TravelExpensesController {
   }
 
   @Post(':id/advances')
-  addAdvance(
-    @Param('id', ParseIntPipe) id: number,
-    @Body()
-    dto: {
-      amount: number | string;
-      issuedAt?: string;
-      method?: string;
-      notes?: string;
-    },
-  ) {
+  addAdvance(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateAdvanceDto) {
     return this.service.addAdvance(id, dto);
   }
 
@@ -170,16 +156,7 @@ export class TravelExpensesController {
   }
 
   @Post(':id/returns')
-  addReturn(
-    @Param('id', ParseIntPipe) id: number,
-    @Body()
-    dto: {
-      amount: number | string;
-      returnedAt?: string;
-      method?: string;
-      notes?: string;
-    },
-  ) {
+  addReturn(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateReturnDto) {
     return this.service.addReturn(id, dto);
   }
 

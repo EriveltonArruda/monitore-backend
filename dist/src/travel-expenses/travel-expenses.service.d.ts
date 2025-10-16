@@ -81,6 +81,8 @@ export declare class TravelExpensesService {
             reimbursedAmount: number;
             advancesAmount: number;
             returnsAmount: number;
+            balanceCents: number;
+            balance: number;
             id: number;
             createdAt: Date;
             updatedAt: Date;
@@ -119,6 +121,10 @@ export declare class TravelExpensesService {
     findOne(id: number): Promise<{
         amount: number;
         reimbursedAmount: number;
+        advancesAmount: number;
+        returnsAmount: number;
+        balanceCents: number;
+        balance: number;
         reimbursements: {
             amount: number;
             id: number;

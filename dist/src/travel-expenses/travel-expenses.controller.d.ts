@@ -3,10 +3,14 @@ import { TravelExpensesService } from './travel-expenses.service';
 import { CreateTravelExpenseDto } from './dto/create-travel-expense.dto';
 import { UpdateTravelExpenseDto } from './dto/update-travel-expense.dto';
 import { CreateReimbursementDto } from './dto/create-reimbursement.dto';
+import { CreateAdvanceDto } from './dto/create-advance.dto';
+import { CreateReturnDto } from './dto/create-return.dto';
 export declare class TravelExpensesController {
     private readonly service;
     constructor(service: TravelExpensesService);
     private buildExportFilename;
+    exportCsv(query: any, res: Response): Promise<void>;
+    exportPdf(query: any, res: Response): Promise<void>;
     create(dto: CreateTravelExpenseDto): Promise<{
         amount: number;
         reimbursedAmount: number;
@@ -32,6 +36,8 @@ export declare class TravelExpensesController {
             reimbursedAmount: number;
             advancesAmount: number;
             returnsAmount: number;
+            balanceCents: number;
+            balance: number;
             id: number;
             createdAt: Date;
             updatedAt: Date;
@@ -56,6 +62,10 @@ export declare class TravelExpensesController {
     findOne(id: number): Promise<{
         amount: number;
         reimbursedAmount: number;
+        advancesAmount: number;
+        returnsAmount: number;
+        balanceCents: number;
+        balance: number;
         reimbursements: {
             amount: number;
             id: number;
@@ -124,8 +134,6 @@ export declare class TravelExpensesController {
     remove(id: number): Promise<{
         deleted: boolean;
     }>;
-    exportCsv(query: any, res: Response): Promise<void>;
-    exportPdf(query: any, res: Response): Promise<void>;
     listReimbursements(id: number): Promise<{
         amount: number;
         id: number;
@@ -150,12 +158,7 @@ export declare class TravelExpensesController {
         issuedAt: Date;
         method: string | null;
     }[]>;
-    addAdvance(id: number, dto: {
-        amount: number | string;
-        issuedAt?: string;
-        method?: string;
-        notes?: string;
-    }): Promise<any>;
+    addAdvance(id: number, dto: CreateAdvanceDto): Promise<any>;
     deleteAdvance(id: number, advanceId: number): Promise<{
         deleted: boolean;
     }>;
@@ -169,12 +172,7 @@ export declare class TravelExpensesController {
         method: string | null;
         returnedAt: Date;
     }[]>;
-    addReturn(id: number, dto: {
-        amount: number | string;
-        returnedAt?: string;
-        method?: string;
-        notes?: string;
-    }): Promise<any>;
+    addReturn(id: number, dto: CreateReturnDto): Promise<any>;
     deleteReturn(id: number, returnId: number): Promise<{
         deleted: boolean;
     }>;

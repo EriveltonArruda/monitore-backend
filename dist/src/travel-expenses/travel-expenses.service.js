@@ -180,7 +180,7 @@ let TravelExpensesService = class TravelExpensesService {
             };
         }
         const ids = rows.map((r) => r.id);
-        const [advList, retList] = await this.prisma.$transaction([
+        const [advList, retList, reiList] = await this.prisma.$transaction([
             this.prisma.travelAdvance.findMany({
                 where: { travelExpenseId: { in: ids } },
                 select: { travelExpenseId: true, amountCents: true },
@@ -189,24 +189,34 @@ let TravelExpensesService = class TravelExpensesService {
                 where: { travelExpenseId: { in: ids } },
                 select: { travelExpenseId: true, amountCents: true },
             }),
+            this.prisma.travelReimbursement.findMany({
+                where: { travelExpenseId: { in: ids } },
+                select: { travelExpenseId: true, amountCents: true },
+            }),
         ]);
-        const advMap = new Map();
-        for (const a of advList) {
-            advMap.set(a.travelExpenseId, (advMap.get(a.travelExpenseId) ?? 0) + (a.amountCents ?? 0));
-        }
-        const retMap = new Map();
-        for (const r of retList) {
-            retMap.set(r.travelExpenseId, (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0));
-        }
+        const sumBy = (list) => {
+            const m = new Map();
+            for (const it of list) {
+                m.set(it.travelExpenseId, (m.get(it.travelExpenseId) ?? 0) + (it.amountCents ?? 0));
+            }
+            return m;
+        };
+        const advMap = sumBy(advList);
+        const retMap = sumBy(retList);
+        const reiMap = sumBy(reiList);
         const data = rows.map((r) => {
             const advancesCents = advMap.get(r.id) ?? 0;
             const returnsCents = retMap.get(r.id) ?? 0;
+            const reimbursedCentsAgg = reiMap.get(r.id) ?? r.reimbursedCents;
+            const balanceCents = this.computeBalanceCents(r.amountCents, reimbursedCentsAgg, advancesCents, returnsCents);
             return {
                 ...r,
                 amount: fromCents(r.amountCents),
                 reimbursedAmount: fromCents(r.reimbursedCents),
                 advancesAmount: fromCents(advancesCents),
                 returnsAmount: fromCents(returnsCents),
+                balanceCents,
+                balance: fromCents(balanceCents),
             };
         });
         return {
@@ -363,10 +373,18 @@ let TravelExpensesService = class TravelExpensesService {
         });
         if (!r)
             throw new common_1.NotFoundException('Despesa não encontrada');
+        const advancesCents = r.advances.reduce((s, a) => s + (a.amountCents ?? 0), 0);
+        const returnsCents = r.returns.reduce((s, t) => s + (t.amountCents ?? 0), 0);
+        const reimbursedCentsAgg = r.reimbursements.reduce((s, rr) => s + (rr.amountCents ?? 0), 0);
+        const balanceCents = this.computeBalanceCents(r.amountCents, reimbursedCentsAgg, advancesCents, returnsCents);
         return {
             ...r,
             amount: fromCents(r.amountCents),
             reimbursedAmount: fromCents(r.reimbursedCents),
+            advancesAmount: fromCents(advancesCents),
+            returnsAmount: fromCents(returnsCents),
+            balanceCents,
+            balance: fromCents(balanceCents),
             reimbursements: r.reimbursements.map((x) => ({
                 ...x,
                 amount: fromCents(x.amountCents),

@@ -1,5 +1,5 @@
 export declare class CreateReimbursementDto {
-    amount: number;
+    amount: number | string;
     reimbursedAt?: string;
     bankAccount?: string;
     notes?: string;

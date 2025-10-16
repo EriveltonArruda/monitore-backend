@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsNumber, IsDateString, IsIn, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+// src/travel-expenses/dto/create-travel-expense.dto.ts
+import { IsOptional, IsString, IsDateString, IsIn, IsDefined } from 'class-validator';
 
 const CATEGORIES = ['TRANSPORTE', 'HOSPEDAGEM', 'ALIMENTACAO', 'OUTROS'] as const;
 
@@ -26,12 +26,12 @@ export class CreateTravelExpenseDto {
   expenseDate?: string; // yyyy-mm-dd
 
   @IsOptional() @IsString()
-  currency?: string; // default BRL no service/schema
+  currency?: string; // default 'BRL' no service/schema
 
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.01, { message: 'Valor deve ser maior que zero' })
-  amount!: number; // obrigatório (em reais, ex: 123.45)
+  // Aceita número (ex.: 1234.56) ou string BR (ex.: "1.234,56").
+  // A validação de formato/valor (> 0) é feita no service via toCentsSmart().
+  @IsDefined()
+  amount!: number | string;
 
   @IsOptional() @IsString()
   receiptUrl?: string;

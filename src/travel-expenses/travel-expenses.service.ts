@@ -70,7 +70,7 @@ export class TravelExpensesService {
         amountCents: toCentsSmart(dto.amount as any),
         receiptUrl: dto.receiptUrl ?? null,
         status: 'PENDENTE',
-        // este campo será mantido sincronizado via recálculo (agregação de reimbursements)
+        // mantido por recálculo
         reimbursedCents: 0,
       },
     });
@@ -128,8 +128,7 @@ export class TravelExpensesService {
     return Math.round(n);
   }
 
-  // saldo do ponto de vista de "fechar" o relatório:
-  // total - adiantado - reembolsado + devolvido
+  // saldo para fechar: total - adiantado - reembolsado + devolvido
   private computeBalanceCents(
     amountCents: number,
     reimbursedCents: number,
@@ -142,6 +141,7 @@ export class TravelExpensesService {
   private computeStatusByBalance(
     balanceCents: number,
   ): 'PENDENTE' | 'PARCIAL' | 'REEMBOLSADO' {
+    // quando “bateu” (<= 0), consideramos REEMBOLSADO (equivale a “pago”)
     if (balanceCents <= 0) return 'REEMBOLSADO';
     return 'PARCIAL';
   }
@@ -269,7 +269,7 @@ export class TravelExpensesService {
 
     const ids = rows.map((r) => r.id);
 
-    const [advList, retList] = await this.prisma.$transaction([
+    const [advList, retList, reiList] = await this.prisma.$transaction([
       this.prisma.travelAdvance.findMany({
         where: { travelExpenseId: { in: ids } },
         select: { travelExpenseId: true, amountCents: true },
@@ -278,27 +278,37 @@ export class TravelExpensesService {
         where: { travelExpenseId: { in: ids } },
         select: { travelExpenseId: true, amountCents: true },
       }),
+      this.prisma.travelReimbursement.findMany({
+        where: { travelExpenseId: { in: ids } },
+        select: { travelExpenseId: true, amountCents: true },
+      }),
     ]);
 
-    const advMap = new Map<number, number>();
-    for (const a of advList) {
-      advMap.set(
-        a.travelExpenseId,
-        (advMap.get(a.travelExpenseId) ?? 0) + (a.amountCents ?? 0),
-      );
-    }
+    const sumBy = (list: { travelExpenseId: number; amountCents: number | null }[]) => {
+      const m = new Map<number, number>();
+      for (const it of list) {
+        m.set(
+          it.travelExpenseId,
+          (m.get(it.travelExpenseId) ?? 0) + (it.amountCents ?? 0),
+        );
+      }
+      return m;
+    };
 
-    const retMap = new Map<number, number>();
-    for (const r of retList) {
-      retMap.set(
-        r.travelExpenseId,
-        (retMap.get(r.travelExpenseId) ?? 0) + (r.amountCents ?? 0),
-      );
-    }
+    const advMap = sumBy(advList);
+    const retMap = sumBy(retList);
+    const reiMap = sumBy(reiList);
 
     const data = rows.map((r) => {
       const advancesCents = advMap.get(r.id) ?? 0;
       const returnsCents = retMap.get(r.id) ?? 0;
+      const reimbursedCentsAgg = reiMap.get(r.id) ?? r.reimbursedCents;
+      const balanceCents = this.computeBalanceCents(
+        r.amountCents,
+        reimbursedCentsAgg,
+        advancesCents,
+        returnsCents,
+      );
 
       return {
         ...r,
@@ -306,6 +316,8 @@ export class TravelExpensesService {
         reimbursedAmount: fromCents(r.reimbursedCents),
         advancesAmount: fromCents(advancesCents),
         returnsAmount: fromCents(returnsCents),
+        balanceCents,
+        balance: fromCents(balanceCents),
       };
     });
 
@@ -517,10 +529,28 @@ export class TravelExpensesService {
     });
     if (!r) throw new NotFoundException('Despesa não encontrada');
 
+    // somatórios para expor balanço
+    const advancesCents = r.advances.reduce((s, a) => s + (a.amountCents ?? 0), 0);
+    const returnsCents = r.returns.reduce((s, t) => s + (t.amountCents ?? 0), 0);
+    const reimbursedCentsAgg = r.reimbursements.reduce(
+      (s, rr) => s + (rr.amountCents ?? 0),
+      0,
+    );
+    const balanceCents = this.computeBalanceCents(
+      r.amountCents,
+      reimbursedCentsAgg,
+      advancesCents,
+      returnsCents,
+    );
+
     return {
       ...r,
       amount: fromCents(r.amountCents),
       reimbursedAmount: fromCents(r.reimbursedCents),
+      advancesAmount: fromCents(advancesCents),
+      returnsAmount: fromCents(returnsCents),
+      balanceCents,
+      balance: fromCents(balanceCents),
       reimbursements: r.reimbursements.map((x) => ({
         ...x,
         amount: fromCents(x.amountCents),
@@ -548,7 +578,7 @@ export class TravelExpensesService {
         amountCents:
           dto.amount !== undefined ? toCentsSmart(dto.amount as any) : undefined,
         receiptUrl: dto.receiptUrl ?? undefined,
-        status: dto.status ?? undefined, // permite override manual se você usa isso; caso não, remova
+        status: dto.status ?? undefined, // se não quiser override manual, remova esta linha
       },
     });
 
@@ -591,7 +621,7 @@ export class TravelExpensesService {
     if (amountCents <= 0)
       throw new BadRequestException('Valor do reembolso deve ser maior que zero');
 
-    // validação: não exceder restante a reembolsar (sem considerar devoluções para o "restante a reembolsar")
+    // validação: não exceder restante a reembolsar (sem considerar devoluções no limite)
     const totalsBefore = await this.getTotals(expenseId);
     const maxReembolso = Math.max(
       0,
@@ -614,7 +644,7 @@ export class TravelExpensesService {
         },
       });
 
-      // NÃO somar manualmente em travelExpense.reimbursedCents; recálculo sincroniza
+      // recálculo mantém reimbursedCents e status
       await this.recalcAndUpdateStatus(expenseId, tx);
 
       return created;
@@ -633,7 +663,6 @@ export class TravelExpensesService {
 
     await this.prisma.$transaction(async (tx) => {
       await (tx as any).travelReimbursement.delete({ where: { id: reimbursementId } });
-      // NÃO decrementar manualmente; recálculo sincroniza
       await this.recalcAndUpdateStatus(expenseId, tx);
     });
 

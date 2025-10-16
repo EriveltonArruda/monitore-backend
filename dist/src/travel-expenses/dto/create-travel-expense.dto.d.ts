@@ -8,7 +8,7 @@ export declare class CreateTravelExpenseDto {
     state?: string;
     expenseDate?: string;
     currency?: string;
-    amount: number;
+    amount: number | string;
     receiptUrl?: string;
 }
 export {};

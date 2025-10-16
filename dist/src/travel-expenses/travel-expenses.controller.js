@@ -18,6 +18,8 @@ const travel_expenses_service_1 = require("./travel-expenses.service");
 const create_travel_expense_dto_1 = require("./dto/create-travel-expense.dto");
 const update_travel_expense_dto_1 = require("./dto/update-travel-expense.dto");
 const create_reimbursement_dto_1 = require("./dto/create-reimbursement.dto");
+const create_advance_dto_1 = require("./dto/create-advance.dto");
+const create_return_dto_1 = require("./dto/create-return.dto");
 let TravelExpensesController = class TravelExpensesController {
     service;
     constructor(service) {
@@ -35,6 +37,28 @@ let TravelExpensesController = class TravelExpensesController {
             parts.push(String(query.category).toLowerCase());
         const base = parts.join('_').replace(/[^\w\-]+/g, '_');
         return `${base}.${ext}`;
+    }
+    async exportCsv(query, res) {
+        const filename = this.buildExportFilename(query, 'csv');
+        const csv = await this.service.exportCsv(query);
+        const payload = '\uFEFF' + csv;
+        res.set({
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'no-store',
+        });
+        res.send(payload);
+    }
+    async exportPdf(query, res) {
+        const filename = this.buildExportFilename(query, 'pdf');
+        const buffer = await this.service.exportPdf(query);
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Length': String(buffer.length),
+            'Cache-Control': 'no-store',
+        });
+        res.end(buffer);
     }
     create(dto) {
         return this.service.create(dto);
@@ -58,28 +82,6 @@ let TravelExpensesController = class TravelExpensesController {
     }
     remove(id) {
         return this.service.remove(id);
-    }
-    async exportCsv(query, res) {
-        const filename = this.buildExportFilename(query, 'csv');
-        const csv = await this.service.exportCsv(query);
-        const payload = '\uFEFF' + csv;
-        res.set({
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Cache-Control': 'no-store',
-        });
-        res.send(payload);
-    }
-    async exportPdf(query, res) {
-        const filename = this.buildExportFilename(query, 'pdf');
-        const buffer = await this.service.exportPdf(query);
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Content-Length': String(buffer.length),
-            'Cache-Control': 'no-store',
-        });
-        res.end(buffer);
     }
     listReimbursements(id) {
         return this.service.listReimbursements(id);
@@ -110,6 +112,22 @@ let TravelExpensesController = class TravelExpensesController {
     }
 };
 exports.TravelExpensesController = TravelExpensesController;
+__decorate([
+    (0, common_1.Get)('export-csv'),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TravelExpensesController.prototype, "exportCsv", null);
+__decorate([
+    (0, common_1.Get)('export-pdf'),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TravelExpensesController.prototype, "exportPdf", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
@@ -153,22 +171,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TravelExpensesController.prototype, "remove", null);
 __decorate([
-    (0, common_1.Get)('export-csv'),
-    __param(0, (0, common_1.Query)()),
-    __param(1, (0, common_1.Res)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], TravelExpensesController.prototype, "exportCsv", null);
-__decorate([
-    (0, common_1.Get)('export-pdf'),
-    __param(0, (0, common_1.Query)()),
-    __param(1, (0, common_1.Res)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], TravelExpensesController.prototype, "exportPdf", null);
-__decorate([
     (0, common_1.Get)(':id/reimbursements'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
@@ -203,7 +205,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, create_advance_dto_1.CreateAdvanceDto]),
     __metadata("design:returntype", void 0)
 ], TravelExpensesController.prototype, "addAdvance", null);
 __decorate([
@@ -226,7 +228,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, create_return_dto_1.CreateReturnDto]),
     __metadata("design:returntype", void 0)
 ], TravelExpensesController.prototype, "addReturn", null);
 __decorate([
