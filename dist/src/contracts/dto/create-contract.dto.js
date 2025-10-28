@@ -20,6 +20,7 @@ class CreateContractDto {
     endDate;
     monthlyValue;
     active;
+    attachmentUrl;
     status;
 }
 exports.CreateContractDto = CreateContractDto;
@@ -61,6 +62,11 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateContractDto.prototype, "active", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateContractDto.prototype, "attachmentUrl", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

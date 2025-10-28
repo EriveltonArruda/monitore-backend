@@ -34,6 +34,7 @@ export declare class ContractsService {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     findAll(query: FindContractsDto): Promise<{
         data: {
@@ -65,6 +66,7 @@ export declare class ContractsService {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         }[];
         total: number;
         page: number;
@@ -100,6 +102,7 @@ export declare class ContractsService {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     update(id: number, dto: UpdateContractDto): Promise<{
         daysToEnd: number | null;
@@ -130,6 +133,7 @@ export declare class ContractsService {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     remove(id: number): Promise<{
         success: boolean;

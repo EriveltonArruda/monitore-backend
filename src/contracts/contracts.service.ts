@@ -20,11 +20,14 @@ export class ContractsService {
       endDate: dto.endDate ? new Date(dto.endDate) : null,
       monthlyValue: dto.monthlyValue ?? null,
 
-      // não envie null; se undefined, Prisma aplica o default (true)
+      // Prisma aplica default(true) se undefined
       active: dto.active !== undefined ? dto.active : undefined,
 
-      // normaliza para UPPER; se undefined, Prisma usa default "ATIVO"
+      // normaliza para UPPER; se undefined, Prisma usa default
       status: dto.status ? (dto.status.toUpperCase() as any) : undefined,
+
+      // NOVO: anexo
+      attachmentUrl: dto.attachmentUrl ?? null,
     };
 
     const created = await this.prisma.contract.create({
@@ -32,10 +35,7 @@ export class ContractsService {
       include: { municipality: true, department: true },
     });
 
-    return {
-      ...created,
-      ...computeAlert(created.endDate, 30),
-    };
+    return { ...created, ...computeAlert(created.endDate, 30) };
   }
 
   // FIND ALL + paginação e filtros
@@ -64,7 +64,6 @@ export class ContractsService {
         OR: [
           { code: { contains: search.trim(), mode: 'insensitive' } },
           { description: { contains: search.trim(), mode: 'insensitive' } },
-          // { status: { contains: search.trim(), mode: 'insensitive' } }, // opcional
         ],
       });
     }
@@ -78,20 +77,23 @@ export class ContractsService {
       and.push({ endDate: { lt: startOfDay(new Date()) } });
     }
 
-    if (typeof dueInDays === 'number' && dueInDays > 0) {
+    // dueInDays pode vir string; normaliza para number
+    const due = Number(dueInDays);
+    if (!Number.isNaN(due) && due > 0) {
       const today = startOfDay(new Date());
-      const limitDate = endOfDay(addDays(today, dueInDays));
+      const limitDate = endOfDay(addDays(today, due));
       and.push({ endDate: { gte: today, lte: limitDate } });
     }
 
     if (and.length > 0) where.AND = and;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+    const skip = (Number(page) - 1) * take;
 
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.contract.findMany({
         where,
-        take: Number(limit),
+        take,
         skip,
         orderBy: { endDate: order === 'desc' ? 'desc' : 'asc' },
         include: { municipality: true, department: true },
@@ -99,17 +101,14 @@ export class ContractsService {
       this.prisma.contract.count({ where }),
     ]);
 
-    const enriched = rows.map((c) => ({
-      ...c,
-      ...computeAlert(c.endDate, 30),
-    }));
+    const enriched = rows.map((c) => ({ ...c, ...computeAlert(c.endDate, 30) }));
 
     return {
       data: enriched,
       total,
       page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.max(1, Math.ceil(total / Number(limit))),
+      limit: take,
+      totalPages: Math.max(1, Math.ceil(total / take)),
     };
   }
 
@@ -131,9 +130,7 @@ export class ContractsService {
     const data: Prisma.ContractUpdateInput = {
       code: dto.code ?? undefined,
       description: dto.description ?? undefined,
-      municipality: dto.municipalityId
-        ? { connect: { id: dto.municipalityId } }
-        : undefined,
+      municipality: dto.municipalityId ? { connect: { id: dto.municipalityId } } : undefined,
       department:
         dto.departmentId === null
           ? { disconnect: true }
@@ -141,22 +138,15 @@ export class ContractsService {
             ? { connect: { id: dto.departmentId } }
             : undefined,
       startDate:
-        dto.startDate !== undefined
-          ? dto.startDate
-            ? new Date(dto.startDate)
-            : null
-          : undefined,
-      endDate:
-        dto.endDate !== undefined
-          ? dto.endDate
-            ? new Date(dto.endDate)
-            : null
-          : undefined,
+        dto.startDate !== undefined ? (dto.startDate ? new Date(dto.startDate) : null) : undefined,
+      endDate: dto.endDate !== undefined ? (dto.endDate ? new Date(dto.endDate) : null) : undefined,
       monthlyValue: dto.monthlyValue ?? undefined,
 
-      // só atualiza se vier no DTO
       active: dto.active !== undefined ? dto.active : undefined,
       status: dto.status ? (dto.status.toUpperCase() as any) : undefined,
+
+      // NOVO: anexo (permitindo nulificar)
+      attachmentUrl: dto.attachmentUrl !== undefined ? (dto.attachmentUrl ?? null) : undefined,
     };
 
     const updated = await this.prisma.contract.update({
@@ -215,6 +205,7 @@ function computeAlert(endDate: Date | null, thresholdDays = 30) {
   let alertTag: 'EXPIRADO' | 'D-7' | 'D-30' | 'HOJE' | null = null;
   if (daysToEnd < 0) alertTag = 'EXPIRADO';
   else if (daysToEnd === 0) alertTag = 'HOJE';
+  else if (daysToEnd <= 7) alertTag = 'D-7';
   else if (daysToEnd <= thresholdDays) alertTag = 'D-30';
 
   return { daysToEnd, alertTag };

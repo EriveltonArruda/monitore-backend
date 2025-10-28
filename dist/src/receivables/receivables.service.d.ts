@@ -34,6 +34,7 @@ export declare class ReceivablesService {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         };
     } & {
         id: number;
@@ -81,6 +82,7 @@ export declare class ReceivablesService {
                 signedAt: Date | null;
                 processNumber: string | null;
                 active: boolean;
+                attachmentUrl: string | null;
             };
         } & {
             id: number;
@@ -132,6 +134,7 @@ export declare class ReceivablesService {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         };
     } & {
         id: number;
@@ -178,6 +181,7 @@ export declare class ReceivablesService {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         };
     } & {
         id: number;
@@ -227,6 +231,7 @@ export declare class ReceivablesService {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         };
     } & {
         id: number;

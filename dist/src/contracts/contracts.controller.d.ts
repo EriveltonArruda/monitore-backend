@@ -35,6 +35,7 @@ export declare class ContractsController {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     findAll(query: FindContractsDto): Promise<{
         data: {
@@ -66,14 +67,20 @@ export declare class ContractsController {
             signedAt: Date | null;
             processNumber: string | null;
             active: boolean;
+            attachmentUrl: string | null;
         }[];
         total: number;
         page: number;
         limit: number;
         totalPages: number;
     }>;
+    upload(file?: Express.Multer.File): {
+        url: string;
+    };
     exportListPdf(query: FindContractsDto, res: Response): Promise<void>;
     exportOnePdf(id: number, res: Response): Promise<void>;
+    getAttachment(id: number, res: Response): Promise<void>;
+    viewPdf(id: number, res: Response): Promise<void | Response<any, Record<string, any>>>;
     findOne(id: number): Promise<{
         daysToEnd: number | null;
         alertTag: "EXPIRADO" | "D-7" | "D-30" | "HOJE" | null;
@@ -103,6 +110,7 @@ export declare class ContractsController {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     update(id: number, dto: UpdateContractDto): Promise<{
         daysToEnd: number | null;
@@ -133,8 +141,10 @@ export declare class ContractsController {
         signedAt: Date | null;
         processNumber: string | null;
         active: boolean;
+        attachmentUrl: string | null;
     }>;
     remove(id: number): Promise<{
         success: boolean;
     }>;
+    private drawContractDoc;
 }

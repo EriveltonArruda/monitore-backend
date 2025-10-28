@@ -39,7 +39,12 @@ export class CreateContractDto {
   @IsBoolean()
   active?: boolean;
 
-  // ⬇️ agora inclui PENDENTE
+  // Novo: URL/Path do PDF do contrato
+  @IsOptional()
+  @IsString()
+  attachmentUrl?: string | null;
+
+  // Agora inclui PENDENTE
   @IsOptional()
   @IsString()
   @IsIn(['ATIVO', 'ENCERRADO', 'SUSPENSO', 'PENDENTE'])

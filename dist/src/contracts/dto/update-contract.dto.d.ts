@@ -7,5 +7,6 @@ export declare class UpdateContractDto {
     endDate?: string | null;
     monthlyValue?: number;
     active?: boolean;
+    attachmentUrl?: string | null;
     status?: 'ATIVO' | 'ENCERRADO' | 'SUSPENSO' | 'PENDENTE';
 }

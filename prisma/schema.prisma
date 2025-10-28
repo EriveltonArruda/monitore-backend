@@ -248,17 +248,21 @@ model Department {
 
 model Contract {
   id             Int       @id @default(autoincrement())
-  code           String // Ex.: "CT 009/2025"
+  code           String
   description    String?
   municipalityId Int
   departmentId   Int?
   startDate      DateTime?
   endDate        DateTime?
   monthlyValue   Float?
-  status         String    @default("ATIVO") // ATIVO | ENCERRADO | SUSPENSO
+  status         String    @default("ATIVO")
   signedAt       DateTime?
   processNumber  String?
-  active         Boolean   @default(true) // << ADICIONADO
+  active         Boolean   @default(true)
+
+  // ⬇️ novo
+  attachmentUrl  String?   // URL pública para o PDF do contrato
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -267,11 +271,12 @@ model Contract {
 
   receivables Receivable[]
 
-  @@unique([municipalityId, code]) // mesmo código pode existir em outra prefeitura
+  @@unique([municipalityId, code])
   @@index([municipalityId])
   @@index([departmentId])
-  @@index([endDate]) // útil para filtros/ordenações por vigência final
+  @@index([endDate])
 }
+
 
 model Receivable {
   id           Int       @id @default(autoincrement())

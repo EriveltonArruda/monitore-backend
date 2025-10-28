@@ -1,3 +1,4 @@
+// src/contracts/dto/find-contracts.dto.ts
 import { IsBooleanString, IsIn, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class FindContractsDto {
@@ -11,17 +12,16 @@ export class FindContractsDto {
 
   @IsOptional()
   @IsNumberString()
-  municipalityId?: string | number; // <— era @IsInt()
+  municipalityId?: string | number;
 
   @IsOptional()
   @IsNumberString()
-  departmentId?: string | number;   // <— era @IsInt()
+  departmentId?: string | number;
 
   @IsOptional()
   @IsString()
   search?: string;
 
-  // 'true' | 'false'
   @IsOptional()
   @IsBooleanString()
   active?: string;
@@ -34,12 +34,10 @@ export class FindContractsDto {
   @IsString()
   endTo?: string;   // YYYY-MM-DD
 
-  // próximos X dias para vencer
   @IsOptional()
   @IsNumberString()
-  dueInDays?: string | number;       // <— era @IsInt()
+  dueInDays?: string | number;
 
-  // apenas expirados
   @IsOptional()
   @IsBooleanString()
   expiredOnly?: string;
